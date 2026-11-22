@@ -1,0 +1,3270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenAgentMemory (OAM) — Portable Bitemporal Agent Memory</title>
+  <meta name="description" content="Zero-dependency, zero-build open specification (oam.record.v1) and single-file memory console for persistent, bitemporal AI agent memory with localStorage, Private GitHub Repo, Cloudflare Worker, and AGENTS.md export." />
+  <style>
+    :root {
+      --bg: #F6F4EF;
+      --surface: #FFFFFF;
+      --surface-subtle: #FAF9F6;
+      --surface-hover: #F2EFE9;
+      --border: #E2DDD4;
+      --border-strong: #CCC5B9;
+      --ink: #191816;
+      --ink-muted: #59554E;
+      --ink-faint: #7D786F;
+      --accent: #0F5C4D;
+      --accent-hover: #0B463B;
+      --accent-soft: #E9F4F0;
+      --accent-border: #B8DDD1;
+      --amber: #9A4A0A;
+      --amber-soft: #FDF5E8;
+      --amber-border: #EDD4AA;
+      --danger: #9B2C2C;
+      --danger-soft: #FDF1F1;
+      --danger-border: #EDC5C5;
+      --slate-soft: #EFECE6;
+      --code-bg: #1D1C1A;
+      --code-ink: #F2EFE9;
+      --shadow-sm: 0 1px 2px rgba(25, 24, 22, 0.05);
+      --shadow-md: 0 8px 24px rgba(25, 24, 22, 0.08);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg: #141413;
+      --surface: #1C1B19;
+      --surface-subtle: #22211E;
+      --surface-hover: #2A2824;
+      --border: #302E29;
+      --border-strong: #45423B;
+      --ink: #F2EFE9;
+      --ink-muted: #B6B0A6;
+      --ink-faint: #8A847A;
+      --accent: #38A38C;
+      --accent-hover: #49B89F;
+      --accent-soft: #172B26;
+      --accent-border: #244D44;
+      --amber: #E5A04D;
+      --amber-soft: #2B2216;
+      --amber-border: #4D3B22;
+      --danger: #E07070;
+      --danger-soft: #2B1919;
+      --danger-border: #522929;
+      --slate-soft: #262522;
+      --code-bg: #111110;
+      --code-ink: #EBE7DF;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+      --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 14.5px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    code, pre, .mono { font-family: var(--font-mono); }
+
+    /* Top Header */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .topbar-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15.5px;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: var(--accent);
+      color: #FFFFFF;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-faint);
+      background: var(--slate-soft);
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .nav-tab {
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 6px 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .nav-tab:hover { color: var(--ink); background: var(--surface-hover); }
+    .nav-tab.active {
+      background: var(--surface);
+      color: var(--ink);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #FFFFFF;
+    }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-danger {
+      color: var(--danger);
+      border-color: var(--danger-border);
+      background: var(--danger-soft);
+    }
+    .btn-danger:hover { filter: brightness(0.96); }
+    .btn-sm { padding: 5px 9px; font-size: 12.5px; }
+    .btn-ghost { border-color: transparent; background: transparent; color: var(--ink-muted); }
+    .btn-ghost:hover { background: var(--surface-hover); color: var(--ink); }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Hero Header Strip */
+    .hero-strip {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .hero-copy h1 {
+      margin: 0 0 5px 0;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+    }
+    .hero-copy p {
+      margin: 0;
+      color: var(--ink-muted);
+      max-width: 680px;
+      font-size: 14px;
+    }
+    .metrics-strip {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .metric-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 13px;
+      min-width: 96px;
+    }
+    .metric-val {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .metric-label {
+      font-size: 11.5px;
+      color: var(--ink-faint);
+      margin-top: 2px;
+    }
+
+    /* View Panels */
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
+    /* Console Layout */
+    .console-grid {
+      display: grid;
+      grid-template-columns: minmax(340px, 1.05fr) minmax(360px, 1.15fr);
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .console-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .panel-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    /* Filter Toolbar */
+    .filter-bar {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .search-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input, .select, .textarea {
+      width: 100%;
+      font: inherit;
+      font-size: 13.5px;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
+
+    .chip-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .chip:hover { border-color: var(--border-strong); color: var(--ink); }
+    .chip.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .bitemporal-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+    .bitemporal-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .bitemporal-left label {
+      font-weight: 600;
+      color: var(--ink-muted);
+      font-size: 12px;
+    }
+    .bitemporal-left input[type="datetime-local"] {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 4px 7px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--surface);
+      color: var(--ink);
+    }
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+    .toggle-group label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Record List */
+    .record-list {
+      max-height: 640px;
+      overflow-y: auto;
+    }
+    .record-item {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s ease;
+      position: relative;
+    }
+    .record-item:last-child { border-bottom: none; }
+    .record-item:hover { background: var(--surface-hover); }
+    .record-item.selected {
+      background: var(--accent-soft);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+    .record-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .record-address {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+      word-break: break-all;
+    }
+    .record-title {
+      font-weight: 600;
+      font-size: 14.5px;
+      color: var(--ink);
+      margin: 2px 0 4px 0;
+    }
+    .record-snippet {
+      font-size: 13px;
+      color: var(--ink-muted);
+      margin: 0 0 8px 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .record-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 11.5px;
+      color: var(--ink-faint);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      line-height: 1.3;
+    }
+    .badge-active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+    .badge-superseded { background: var(--slate-soft); color: var(--ink-muted); border-color: var(--border); }
+    .badge-expired { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+    .badge-historical { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-border); }
+    .badge-route-gist { background: var(--surface-subtle); color: var(--accent); border-color: var(--border); font-family: var(--font-mono); font-weight: 500; }
+    .badge-route-repo { background: var(--surface-subtle); color: var(--ink-muted); border-color: var(--border); font-family: var(--font-mono); font-weight: 500; }
+    .badge-tag { background: var(--bg); color: var(--ink-muted); border-color: var(--border); font-weight: 500; }
+
+    /* Detail Inspector */
+    .inspector-sticky { position: sticky; top: 68px; }
+    .inspector-body { padding: 18px; }
+    .detail-heading {
+      margin: 6px 0 10px 0;
+      font-size: 18.5px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+    .detail-content {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 13px 14px;
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 12px 0 16px 0;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 560px) {
+      .meta-grid { grid-template-columns: 1fr; }
+    }
+    .meta-cell {
+      padding: 9px 11px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .meta-cell-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-faint);
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+    .meta-cell-value {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--ink);
+      word-break: break-all;
+    }
+
+    .sub-heading {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-faint);
+      font-weight: 700;
+      margin: 16px 0 8px 0;
+    }
+
+    /* Lineage Chain */
+    .lineage-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .lineage-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 11px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 12.5px;
+    }
+    .lineage-item:hover { background: var(--surface-hover); }
+    .lineage-item.current { border-color: var(--accent); background: var(--accent-soft); }
+
+    /* Citations */
+    .citation-card {
+      padding: 9px 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-subtle);
+      margin-bottom: 7px;
+      font-size: 13px;
+    }
+    .citation-excerpt {
+      margin: 4px 0 0 0;
+      color: var(--ink-muted);
+      font-style: italic;
+      font-size: 12.5px;
+    }
+
+    /* Code Blocks */
+    pre.code-block {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 13px 15px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      font-size: 12.5px;
+      line-height: 1.55;
+      margin: 10px 0;
+    }
+
+    /* Empty State */
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--ink-muted);
+    }
+
+    /* Quickstart & Spec Editorial Layouts */
+    .doc-layout {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    .step-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 18px 0 24px 0;
+    }
+    @media (max-width: 820px) {
+      .step-grid { grid-template-columns: 1fr; }
+    }
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .step-card h3 { margin: 5px 0 6px 0; font-size: 16px; letter-spacing: -0.015em; }
+    .step-card p { margin: 0; font-size: 13.5px; color: var(--ink-muted); }
+
+    .doc-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      margin-bottom: 18px;
+    }
+    .doc-card h2 {
+      margin: 0 0 10px 0;
+      font-size: 17.5px;
+      letter-spacing: -0.02em;
+    }
+    .doc-card p { color: var(--ink-muted); margin: 0 0 12px 0; }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .spec-table th, .spec-table td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .spec-table th {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-faint);
+      background: var(--surface-subtle);
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(20, 19, 17, 0.52);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      backdrop-filter: blur(2px);
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface-subtle);
+    }
+    .modal-header h2 { margin: 0; font-size: 16px; letter-spacing: -0.015em; }
+    .modal-body {
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .modal-footer {
+      padding: 12px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--surface-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 620px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .field-hint { font-size: 11.5px; color: var(--ink-faint); font-weight: 400; }
+
+    .callout {
+      padding: 10px 13px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--surface-subtle);
+    }
+    .callout-accent {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+      color: var(--accent);
+    }
+    .callout-amber {
+      background: var(--amber-soft);
+      border-color: var(--amber-border);
+      color: var(--amber);
+    }
+    .callout-danger {
+      background: var(--danger-soft);
+      border-color: var(--danger-border);
+      color: var(--danger);
+    }
+
+    .citation-editor-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.3fr auto;
+      gap: 6px;
+      align-items: center;
+    }
+    @media (max-width: 640px) {
+      .citation-editor-row { grid-template-columns: 1fr; }
+    }
+
+    /* Toast */
+    .toast-region {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 360px;
+    }
+    .toast {
+      background: var(--ink);
+      color: var(--surface);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-md);
+      font-size: 13px;
+      animation: slideUp 0.18s ease-out;
+    }
+    .toast.error { background: var(--danger); color: #FFFFFF; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .footer {
+      max-width: 1320px;
+      margin: 26px auto 0 auto;
+      padding: 18px 20px 32px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: var(--ink-faint);
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h16M4 12h10M4 18h14" />
+            <circle cx="19" cy="12" r="2.2" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        <span>OpenAgentMemory</span>
+        <span class="brand-sub">oam.record.v1</span>
+      </div>
+
+      <nav class="nav-tabs" aria-label="Primary sections">
+        <button class="nav-tab active" data-view="console" id="tab-console">Memory Console</button>
+        <button class="nav-tab" data-view="quickstart" id="tab-quickstart">3-Min Quickstart</button>
+        <button class="nav-tab" data-view="spec" id="tab-spec">Spec Overview</button>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="btn btn-sm" id="btn-backend" title="Configure storage backend">
+          <span class="status-dot" id="backend-dot"></span>
+          <span id="backend-label">Local Browser</span>
+        </button>
+        <button class="btn btn-sm" id="btn-export">Export / Import</button>
+        <button class="btn btn-sm btn-primary" id="btn-new-memory">+ New Memory</button>
+        <button class="btn btn-sm btn-ghost" id="btn-theme" title="Toggle light/dark theme" aria-label="Toggle theme">Theme</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero-strip">
+      <div class="hero-copy">
+        <h1>OpenAgentMemory</h1>
+        <p>
+          Portable, bitemporal, Git-native memory for AI agents. Zero paid dependencies, zero build tools, zero frameworks.
+          Seeded locally so you can query, supersede, time-travel, and export <code>AGENTS.md</code> immediately.
+        </p>
+      </div>
+      <div class="metrics-strip" id="metrics-strip" aria-label="Memory store metrics">
+        <div class="metric-box">
+          <div class="metric-val" id="metric-active">0</div>
+          <div class="metric-label">Active Heads</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" id="metric-total">0</div>
+          <div class="metric-label">Total Versions</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" id="metric-gist">0</div>
+          <div class="metric-label">Gist (public/shared)</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" id="metric-repo">0</div>
+          <div class="metric-label">Repo (private)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 1: MEMORY CONSOLE -->
+    <section class="view-section active" id="view-console" aria-label="Memory Console">
+      <div class="console-grid">
+        <!-- Left Pane: Explorer & Bitemporal Query -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Records Explorer</h2>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button class="btn btn-sm" id="btn-sync-backend" style="display:none;">Sync</button>
+              <button class="btn btn-sm btn-ghost" id="btn-reset-seed" title="Restore sample memories">Reset Demo</button>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="search-row">
+              <input class="input" type="search" id="search-input" placeholder="Search oam:// address, title, content, tags, or citations..." />
+            </div>
+
+            <div class="chip-row" id="namespace-chips" aria-label="Namespace filter">
+              <button class="chip active" data-ns="all">All Namespaces</button>
+              <button class="chip" data-ns="public">public/* (Gist)</button>
+              <button class="chip" data-ns="shared">shared/* (Gist)</button>
+              <button class="chip" data-ns="private">private/* (Repo)</button>
+            </div>
+
+            <div class="bitemporal-bar">
+              <div class="bitemporal-left">
+                <label for="as-of-input">Valid At:</label>
+                <input type="datetime-local" id="as-of-input" />
+                <button class="btn btn-sm" id="btn-time-now" title="Query current time">Now</button>
+                <button class="btn btn-sm" id="btn-time-past" title="Travel 6 months back to test bitemporal recall">6 mo ago</button>
+              </div>
+              <div class="toggle-group">
+                <label><input type="checkbox" id="toggle-superseded" /> Superseded</label>
+                <label><input type="checkbox" id="toggle-expired" /> Expired</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="record-list" id="record-list" role="listbox" aria-label="Memory records"></div>
+        </div>
+
+        <!-- Right Pane: Inspector & Lineage -->
+        <div class="panel inspector-sticky" id="inspector-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Memory Inspector</h2>
+            <div style="display:flex; gap:6px;" id="inspector-actions"></div>
+          </div>
+          <div class="inspector-body" id="inspector-body">
+            <div class="empty-state">Select a memory on the left to inspect its bitemporal validity, provenance, citations, and version chain.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: 3-MINUTE QUICKSTART -->
+    <section class="view-section" id="view-quickstart" aria-label="3-Minute Quickstart">
+      <div class="doc-layout">
+        <div class="doc-card">
+          <h2>From Zero to Persistent Agent Memory in Under 3 Minutes</h2>
+          <p>
+            No account creation, no API keys, and no build tools are needed to begin. This page already seeded sample
+            <code>oam.record.v1</code> memories into your browser's <code>localStorage</code> so you can explore bitemporal
+            queries and export <code>AGENTS.md</code> immediately.
+          </p>
+        </div>
+
+        <div class="step-grid">
+          <div class="step-card">
+            <div>
+              <div class="step-num">Minute 1 · Explore &amp; Time-Travel</div>
+              <h3>Inspect Lineage &amp; Bitemporal Recall</h3>
+              <p>
+                Click <strong>6 mo ago</strong> in the Memory Console's <em>Valid At</em> bar. Watch
+                <code>private/architecture/database-engine</code> and <code>public/conventions/code-style</code>
+                rewind to their earlier valid versions—without losing modern records.
+              </p>
+            </div>
+            <button class="btn btn-sm" id="qs-btn-timetravel">Try 6-Month Time-Travel</button>
+          </div>
+
+          <div class="step-card">
+            <div>
+              <div class="step-num">Minute 2 · Supersede &amp; Export</div>
+              <h3>Generate <code>AGENTS.md</code></h3>
+              <p>
+                Supersede any memory to create a linked <code>v(n+1)</code> record, then export a clean, deterministic
+                <code>AGENTS.md</code> file containing only active, valid, non-expired memories to drop into any codebase.
+              </p>
+            </div>
+            <button class="btn btn-sm btn-primary" id="qs-btn-export">Preview AGENTS.md Export</button>
+          </div>
+
+          <div class="step-card">
+            <div>
+              <div class="step-num">Minute 3 · Optional Persistence</div>
+              <h3>Connect GitHub Repo or Worker</h3>
+              <p>
+                Keep private memories in a Private GitHub Repo (one fine-grained PAT, zero servers) or deploy
+                <code>worker.js</code> to Cloudflare Workers Free tier to route <code>public/*</code> &amp;
+                <code>shared/*</code> to a GitHub Gist and <code>private/*</code> to your private repo.
+              </p>
+            </div>
+            <button class="btn btn-sm" id="qs-btn-backend">Configure Backend</button>
+          </div>
+        </div>
+
+        <div class="doc-card">
+          <h2>Quickstart CLI / HTTP Examples (Cloudflare Worker)</h2>
+          <p>Once <code>worker.js</code> is deployed, any coding agent or shell script can read and write memories with plain <code>curl</code>:</p>
+          <pre class="code-block"># 1. Write a private memory (routes automatically to your Private GitHub Repo)
+curl -X POST "https://oam.YOUR-SUBDOMAIN.workers.dev/records" \
+  -H "Authorization: Bearer $OAM_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "private/preferences",
+    "key": "pr-style",
+    "title": "Keep pull requests under 300 lines",
+    "content": "Split large refactors into stacked, independently testable PRs.",
+    "kind": "preference",
+    "provenance": { "actor": "user:me", "source": "manual" }
+  }'
+
+# 2. Fetch rendered AGENTS.md directly into your project root
+curl -H "Authorization: Bearer $OAM_API_TOKEN" \
+  "https://oam.YOUR-SUBDOMAIN.workers.dev/export/agents.md" > AGENTS.md
+
+# 3. Query public/* memories (routes to GitHub Gist, readable without auth)
+curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: SPEC OVERVIEW -->
+    <section class="view-section" id="view-spec" aria-label="Specification Overview">
+      <div class="doc-layout">
+        <div class="doc-card">
+          <h2>Specification Overview — <code>oam.record.v1</code></h2>
+          <p>
+            Full RFC-style specification lives in <code>SPEC.md</code>. Every OAM record is a self-describing JSON
+            document addressed canonically by <code>oam://&lt;namespace&gt;/&lt;key&gt;</code>.
+          </p>
+          <div style="overflow-x:auto;">
+            <table class="spec-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Type</th>
+                  <th>Req</th>
+                  <th>Semantics</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>schema</code></td><td><code>"oam.record.v1"</code></td><td>Yes</td><td>Format version discriminator.</td></tr>
+                <tr><td><code>id</code></td><td><code>string</code></td><td>Yes</td><td>Globally unique immutable version ID (e.g. <code>oam_20261122_a9f3c1e2</code>).</td></tr>
+                <tr><td><code>namespace</code>, <code>key</code></td><td><code>string</code></td><td>Yes</td><td>Slash-delimited lowercase namespace + key forming <code>oam://&lt;ns&gt;/&lt;key&gt;</code>.</td></tr>
+                <tr><td><code>title</code>, <code>content</code></td><td><code>string</code></td><td>Yes</td><td>Concise summary and plain-text or Markdown memory body.</td></tr>
+                <tr><td><code>kind</code>, <code>tags</code>, <code>confidence</code></td><td>enum / array / <code>0..1</code></td><td>Opt</td><td><code>fact | preference | decision | procedure | context | constraint</code>, tags, certainty.</td></tr>
+                <tr><td><code>valid_from</code>, <code>valid_to</code></td><td>ISO-8601 / <code>null</code></td><td>Yes</td><td><strong>Valid Time</strong> interval <code>[valid_from, valid_to)</code> when the claim holds in the world.</td></tr>
+                <tr><td><code>recorded_at</code></td><td>ISO-8601 UTC</td><td>Yes</td><td><strong>System Time</strong> when this version was asserted (immutable audit clock).</td></tr>
+                <tr><td><code>expires_at</code></td><td>ISO-8601 / <code>null</code></td><td>Opt</td><td>Hard retention TTL. Excluded from active recall once elapsed; distinct from <code>valid_to</code>.</td></tr>
+                <tr><td><code>version</code>, <code>supersedes</code>, <code>superseded_by</code></td><td>int / ID / <code>null</code></td><td>Yes*</td><td>Append-only version chain. Active heads have <code>superseded_by: null</code>.</td></tr>
+                <tr><td><code>provenance</code></td><td><code>object</code></td><td>Yes</td><td>Required <code>actor</code> &amp; <code>source</code>; optional <code>method</code>, <code>trust</code>, <code>session_id</code>.</td></tr>
+                <tr><td><code>citations</code></td><td><code>object[]</code></td><td>Opt</td><td>Evidence links: <code>{ uri, label?, excerpt?, accessed_at? }</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="doc-card">
+          <h2>Fail-Closed Namespace Routing</h2>
+          <p>
+            Routing uses an explicit allowlist for public/shared backends. Any typo or unrecognized namespace defaults
+            to the private GitHub repository so sensitive data never leaks to a Gist.
+          </p>
+          <table class="spec-table">
+            <thead>
+              <tr><th>Namespace Pattern</th><th>Backend Target</th><th>Storage Format</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>public</code>, <code>public/*</code></td>
+                <td><span class="badge badge-route-gist">GitHub Gist</span></td>
+                <td><code>oam__public__&lt;sub&gt;--&lt;key&gt;.json</code></td>
+              </tr>
+              <tr>
+                <td><code>shared</code>, <code>shared/*</code></td>
+                <td><span class="badge badge-route-gist">GitHub Gist</span></td>
+                <td><code>oam__shared__&lt;sub&gt;--&lt;key&gt;.json</code></td>
+              </tr>
+              <tr>
+                <td><code>private</code>, <code>private/*</code>, <em>all others</em></td>
+                <td><span class="badge badge-route-repo">Private GitHub Repo</span></td>
+                <td><code>memories/&lt;namespace&gt;/&lt;key&gt;.json</code> + <code>memories/index.json</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="doc-card">
+          <h2>Interactive <code>oam.record.v1</code> Validator</h2>
+          <p>Paste any JSON object below to validate it against the specification and inspect its computed route.</p>
+          <textarea class="textarea mono" id="validator-input" rows="10" style="font-size:12.5px;"></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" id="btn-run-validator">Validate Record</button>
+            <button class="btn btn-sm" id="btn-load-sample-validator">Load Selected Record</button>
+          </div>
+          <div id="validator-output" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>OpenAgentMemory · Open Specification (<code>oam.record.v1</code>) · MIT License</div>
+    <div>Single-file vanilla HTML/CSS/JS · Zero frameworks · Ready for GitHub Pages</div>
+  </footer>
+
+  <!-- MODAL: CREATE / SUPERSEDE MEMORY -->
+  <div class="modal-backdrop" id="modal-editor" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="editor-title">New Memory</h2>
+        <button class="btn btn-sm btn-ghost" data-close="modal-editor">Close</button>
+      </div>
+      <form id="memory-form">
+        <div class="modal-body">
+          <div id="editor-supersede-banner" class="callout callout-amber" style="display:none;"></div>
+          <div id="editor-errors" class="callout callout-danger" style="display:none;"></div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="f-namespace">
+                Namespace *
+                <span style="display:flex; gap:4px;">
+                  <button type="button" class="chip" data-ns-prefix="public/">public/</button>
+                  <button type="button" class="chip" data-ns-prefix="shared/">shared/</button>
+                  <button type="button" class="chip" data-ns-prefix="private/">private/</button>
+                </span>
+              </label>
+              <input class="input mono" id="f-namespace" required placeholder="private/preferences" />
+            </div>
+            <div class="field">
+              <label for="f-key">Key * <span class="field-hint">lowercase, . _ -</span></label>
+              <input class="input mono" id="f-key" required placeholder="coding-style" />
+            </div>
+
+            <div class="field full">
+              <div id="f-route-preview" class="callout" style="padding:7px 11px; font-size:12.5px;"></div>
+            </div>
+
+            <div class="field full">
+              <label for="f-title">Title *</label>
+              <input class="input" id="f-title" required placeholder="Concise summary of the memory" />
+            </div>
+
+            <div class="field full">
+              <label for="f-content">Content * <span class="field-hint">Markdown or plain text</span></label>
+              <textarea class="textarea" id="f-content" required placeholder="Write the factual memory, preference, constraint, or decision..."></textarea>
+            </div>
+
+            <div class="field">
+              <label for="f-kind">Kind</label>
+              <select class="select" id="f-kind">
+                <option value="fact">fact</option>
+                <option value="preference">preference</option>
+                <option value="decision">decision</option>
+                <option value="procedure">procedure</option>
+                <option value="context">context</option>
+                <option value="constraint">constraint</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-confidence">Confidence (0.0 – 1.0)</label>
+              <input class="input mono" id="f-confidence" type="number" min="0" max="1" step="0.05" value="1.0" />
+            </div>
+
+            <div class="field full">
+              <label for="f-tags">Tags <span class="field-hint">comma-separated</span></label>
+              <input class="input" id="f-tags" placeholder="architecture, conventions, git" />
+            </div>
+
+            <div class="field">
+              <label for="f-valid-from">Valid From (UTC) *</label>
+              <input class="input mono" id="f-valid-from" type="datetime-local" required />
+            </div>
+            <div class="field">
+              <label for="f-valid-to">Valid To (optional) <span class="field-hint">blank = open-ended</span></label>
+              <input class="input mono" id="f-valid-to" type="datetime-local" />
+            </div>
+
+            <div class="field">
+              <label for="f-expires-at">Expires At / TTL (optional)</label>
+              <input class="input mono" id="f-expires-at" type="datetime-local" />
+            </div>
+            <div class="field">
+              <label for="f-actor">Provenance Actor *</label>
+              <input class="input mono" id="f-actor" required placeholder="user:local" />
+            </div>
+
+            <div class="field">
+              <label for="f-source">Provenance Source *</label>
+              <input class="input mono" id="f-source" required placeholder="manual" />
+            </div>
+            <div class="field">
+              <label for="f-trust">Provenance Trust / Method</label>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <select class="select" id="f-trust">
+                  <option value="verified">verified</option>
+                  <option value="derived">derived</option>
+                  <option value="unverified">unverified</option>
+                </select>
+                <select class="select" id="f-method">
+                  <option value="explicit">explicit</option>
+                  <option value="inferred">inferred</option>
+                  <option value="consolidated">consolidated</option>
+                  <option value="imported">imported</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field full" id="f-close-prev-wrap" style="display:none;">
+              <label style="justify-content:flex-start; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="f-close-prev" checked />
+                <span>Close previous version's <code>valid_to</code> at this version's <code>valid_from</code> (domain evolution)</span>
+              </label>
+            </div>
+
+            <div class="field full">
+              <label>
+                Citations
+                <button type="button" class="btn btn-sm" id="btn-add-citation">+ Add Citation</button>
+              </label>
+              <div id="citations-container" style="display:flex; flex-direction:column; gap:7px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" data-close="modal-editor">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-memory">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: BACKEND CONFIGURATION -->
+  <div class="modal-backdrop" id="modal-backend" role="dialog" aria-modal="true" aria-labelledby="backend-modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="backend-modal-title">Storage Backend</h2>
+        <button class="btn btn-sm btn-ghost" data-close="modal-backend">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="nav-tabs" id="backend-mode-tabs" style="align-self:flex-start;">
+          <button type="button" class="nav-tab active" data-bmode="local">Local Browser</button>
+          <button type="button" class="nav-tab" data-bmode="github">Private GitHub Repo</button>
+          <button type="button" class="nav-tab" data-bmode="worker">Cloudflare Worker</button>
+        </div>
+
+        <!-- Local -->
+        <div class="backend-pane" id="bpane-local">
+          <div class="callout callout-accent">
+            <strong>Zero-setup local persistence.</strong> All memories stay in your browser's
+            <code>localStorage</code> under key <code>oam.records.v1</code>. No network calls, accounts, or tokens required.
+          </div>
+          <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-use-local">Use Local Browser Backend</button>
+            <button type="button" class="btn btn-sm" id="btn-modal-reset-seed">Restore Sample Memories</button>
+          </div>
+        </div>
+
+        <!-- Private GitHub Repo -->
+        <div class="backend-pane" id="bpane-github" style="display:none;">
+          <div class="callout">
+            Connect directly to a private GitHub repository via GitHub's REST Contents API. Reads &amp; writes
+            <code>memories/&lt;namespace&gt;/&lt;key&gt;.json</code> and <code>memories/index.json</code>.
+            Tokens are stored in <code>sessionStorage</code> by default (cleared when you close the tab).
+          </div>
+          <div class="form-grid" style="margin-top:12px;">
+            <div class="field">
+              <label for="gh-repo">Repository (owner/repo) *</label>
+              <input class="input mono" id="gh-repo" placeholder="your-user/my-agent-memory" />
+            </div>
+            <div class="field">
+              <label for="gh-branch">Branch</label>
+              <input class="input mono" id="gh-branch" value="main" placeholder="main" />
+            </div>
+            <div class="field full">
+              <label for="gh-token">Fine-Grained PAT (Contents: Read &amp; Write) *</label>
+              <input class="input mono" id="gh-token" type="password" placeholder="github_pat_..." autocomplete="off" />
+            </div>
+            <div class="field full">
+              <label style="justify-content:flex-start; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="gh-remember" />
+                <span>Remember token in <code>localStorage</code> on this device (otherwise cleared on tab close)</span>
+              </label>
+            </div>
+          </div>
+          <div id="gh-status" style="margin-top:10px;"></div>
+          <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" id="btn-gh-test">Test Connection</button>
+            <button type="button" class="btn btn-sm" id="btn-gh-pull">Pull from Repo</button>
+            <button type="button" class="btn btn-sm" id="btn-gh-push">Push Current Records to Repo</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-use-github">Save &amp; Activate GitHub Backend</button>
+          </div>
+        </div>
+
+        <!-- Cloudflare Worker -->
+        <div class="backend-pane" id="bpane-worker" style="display:none;">
+          <div class="callout">
+            Connect to your deployed <code>worker.js</code> instance. Automatically routes
+            <code>public/*</code> &amp; <code>shared/*</code> to GitHub Gist and <code>private/*</code> to your private repo.
+          </div>
+          <div class="form-grid" style="margin-top:12px;">
+            <div class="field full">
+              <label for="wk-url">Worker Base URL *</label>
+              <input class="input mono" id="wk-url" placeholder="https://oam.your-subdomain.workers.dev" />
+            </div>
+            <div class="field full">
+              <label for="wk-token">Bearer Token (<code>OAM_API_TOKEN</code>, optional for public reads)</label>
+              <input class="input mono" id="wk-token" type="password" placeholder="Optional bearer token" autocomplete="off" />
+            </div>
+            <div class="field full">
+              <label style="justify-content:flex-start; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="wk-remember" />
+                <span>Remember token in <code>localStorage</code> on this device</span>
+              </label>
+            </div>
+          </div>
+          <div id="wk-status" style="margin-top:10px;"></div>
+          <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" id="btn-wk-test">Test /health</button>
+            <button type="button" class="btn btn-sm" id="btn-wk-pull">Pull from Worker</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-use-worker">Save &amp; Activate Worker Backend</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXPORT / IMPORT -->
+  <div class="modal-backdrop" id="modal-export" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="export-modal-title">Export &amp; Import</h2>
+        <button class="btn btn-sm btn-ghost" data-close="modal-export">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="nav-tabs" id="export-mode-tabs" style="align-self:flex-start;">
+          <button type="button" class="nav-tab active" data-emode="agents">AGENTS.md (Markdown)</button>
+          <button type="button" class="nav-tab" data-emode="json">JSON Bundle</button>
+          <button type="button" class="nav-tab" data-emode="import">Import JSON</button>
+        </div>
+
+        <!-- AGENTS.md -->
+        <div class="export-pane" id="epane-agents">
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <label style="font-size:12.5px; font-weight:600; color:var(--ink-muted);">Namespace:</label>
+            <select class="select" id="exp-agents-ns" style="width:auto;">
+              <option value="all">All active memories</option>
+              <option value="public">public/* only</option>
+              <option value="shared">shared/* only</option>
+              <option value="private">private/* only</option>
+            </select>
+            <label style="font-size:12.5px; color:var(--ink-muted); display:inline-flex; gap:5px; align-items:center;">
+              <input type="checkbox" id="exp-agents-citations" checked /> Include citations
+            </label>
+          </div>
+          <textarea class="textarea mono" id="exp-agents-preview" rows="13" readonly style="font-size:12px;"></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-dl-agents">Download AGENTS.md</button>
+            <button type="button" class="btn btn-sm" id="btn-copy-agents">Copy Markdown</button>
+          </div>
+        </div>
+
+        <!-- JSON Bundle -->
+        <div class="export-pane" id="epane-json" style="display:none;">
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <label style="font-size:12.5px; color:var(--ink-muted); display:inline-flex; gap:5px; align-items:center;">
+              <input type="checkbox" id="exp-json-all" checked /> Include full history (superseded &amp; expired)
+            </label>
+          </div>
+          <textarea class="textarea mono" id="exp-json-preview" rows="13" readonly style="font-size:12px;"></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-dl-json">Download oam-bundle.json</button>
+            <button type="button" class="btn btn-sm" id="btn-copy-json">Copy JSON</button>
+          </div>
+        </div>
+
+        <!-- Import -->
+        <div class="export-pane" id="epane-import" style="display:none;">
+          <p style="margin:0 0 8px 0; font-size:13px; color:var(--ink-muted);">
+            Import an <code>oam.bundle.v1</code> JSON file, an array of <code>oam.record.v1</code> objects, or a single record.
+          </p>
+          <input type="file" id="imp-file" accept=".json,application/json" style="margin-bottom:8px; font-size:13px;" />
+          <textarea class="textarea mono" id="imp-text" rows="10" placeholder='Paste JSON bundle or oam.record.v1 array...' style="font-size:12px;"></textarea>
+          <div id="imp-status" style="margin-top:8px;"></div>
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-imp-merge">Merge into Store</button>
+            <button type="button" class="btn btn-sm btn-danger" id="btn-imp-replace">Replace Store</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const RECORD_SCHEMA = "oam.record.v1";
+      const CHAIN_SCHEMA = "oam.chain.v1";
+      const INDEX_SCHEMA = "oam.index.v1";
+      const BUNDLE_SCHEMA = "oam.bundle.v1";
+
+      const LS_RECORDS_KEY = "oam.records.v1";
+      const LS_CONFIG_KEY = "oam.backend.config.v1";
+      const SS_SECRETS_KEY = "oam.backend.secrets.v1";
+      const LS_SECRETS_KEY = "oam.backend.secrets.persisted.v1";
+      const LS_THEME_KEY = "oam.theme.v1";
+
+      const NAMESPACE_RE = /^[a-z0-9][a-z0-9_-]*(?:\/[a-z0-9][a-z0-9_-]*)*$/;
+      const KEY_RE = /^[a-z0-9][a-z0-9._-]*$/;
+      const VALID_KINDS = new Set(["fact", "preference", "decision", "procedure", "context", "constraint"]);
+
+      // ---------------------------------------------------------------------
+      // Application State
+      // ---------------------------------------------------------------------
+      const state = {
+        records: [],
+        selectedId: null,
+        showRawJson: false,
+        filters: {
+          q: "",
+          namespace: "all",
+          asOfIso: new Date().toISOString(),
+          includeSuperseded: false,
+          includeExpired: false,
+        },
+        editor: {
+          mode: "create", // "create" | "supersede"
+          supersedingRecord: null,
+        },
+        backend: {
+          mode: "local", // "local" | "github" | "worker"
+          github: { repo: "", branch: "main", token: "", remember: false },
+          worker: { url: "", token: "", remember: false },
+        },
+      };
+
+      // ---------------------------------------------------------------------
+      // Routing, ID, Encoding & Validation Utilities
+      // ---------------------------------------------------------------------
+      function routeNamespace(namespace) {
+        if (
+          namespace === "public" ||
+          namespace.startsWith("public/") ||
+          namespace === "shared" ||
+          namespace.startsWith("shared/")
+        ) {
+          return "gist";
+        }
+        return "repo";
+      }
+
+      function generateId() {
+        const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+        let rand = "";
+        if (window.crypto && crypto.randomUUID) {
+          rand = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+        } else {
+          rand = Math.random().toString(16).slice(2, 10);
+        }
+        return `oam_${stamp}_${rand}`;
+      }
+
+      function toBase64Utf8(str) {
+        const bytes = new TextEncoder().encode(str);
+        let binary = "";
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      }
+
+      function fromBase64Utf8(b64) {
+        const clean = b64.replace(/\s+/g, "");
+        const binary = atob(clean);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new TextDecoder().decode(bytes);
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function safeHref(uri) {
+        const trimmed = String(uri || "").trim();
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return null;
+      }
+
+      function toDatetimeLocalValue(isoString) {
+        if (!isoString) return "";
+        const d = new Date(isoString);
+        if (Number.isNaN(d.getTime())) return "";
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+      }
+
+      function fromDatetimeLocalUtc(val) {
+        if (!val || !val.trim()) return null;
+        const iso = val.endsWith("Z") ? val : `${val}:00.000Z`;
+        const ms = Date.parse(iso);
+        return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+      }
+
+      function fmtDate(iso) {
+        if (!iso) return "∞ (open)";
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return iso;
+        return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+      }
+
+      function fmtShortDate(iso) {
+        if (!iso) return "open";
+        return String(iso).slice(0, 10);
+      }
+
+      function validateRecord(obj) {
+        const errors = [];
+        if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
+          return ["Record must be a JSON object."];
+        }
+        if (obj.schema !== RECORD_SCHEMA) errors.push(`schema must be "${RECORD_SCHEMA}".`);
+        if (!obj.id || typeof obj.id !== "string") errors.push("id (string) is required.");
+        if (!obj.namespace || !NAMESPACE_RE.test(obj.namespace) || obj.namespace.includes("..")) {
+          errors.push("namespace must be lowercase slash-delimited segments without '..' (e.g. private/preferences).");
+        }
+        if (!obj.key || !KEY_RE.test(obj.key) || obj.key.includes("..")) {
+          errors.push("key must be lowercase alphanumeric with '.', '_', or '-'.");
+        }
+        if (!obj.title || !String(obj.title).trim()) errors.push("title is required.");
+        if (!obj.content || !String(obj.content).trim()) errors.push("content is required.");
+        if (obj.kind && !VALID_KINDS.has(obj.kind)) {
+          errors.push(`kind must be one of: ${Array.from(VALID_KINDS).join(", ")}.`);
+        }
+        if (obj.confidence !== undefined) {
+          const c = Number(obj.confidence);
+          if (!Number.isFinite(c) || c < 0 || c > 1) errors.push("confidence must be in [0.0, 1.0].");
+        }
+        if (!obj.valid_from || !Number.isFinite(Date.parse(obj.valid_from))) {
+          errors.push("valid_from must be a valid ISO-8601 timestamp.");
+        }
+        if (obj.valid_to !== null && obj.valid_to !== undefined) {
+          if (!Number.isFinite(Date.parse(obj.valid_to))) {
+            errors.push("valid_to must be null or a valid ISO-8601 timestamp.");
+          } else if (Number.isFinite(Date.parse(obj.valid_from)) && Date.parse(obj.valid_to) < Date.parse(obj.valid_from)) {
+            errors.push("valid_to cannot be earlier than valid_from.");
+          }
+        }
+        if (!obj.recorded_at || !Number.isFinite(Date.parse(obj.recorded_at))) {
+          errors.push("recorded_at must be a valid ISO-8601 timestamp.");
+        }
+        if (obj.expires_at !== null && obj.expires_at !== undefined && !Number.isFinite(Date.parse(obj.expires_at))) {
+          errors.push("expires_at must be null or a valid ISO-8601 timestamp.");
+        }
+        if (obj.superseded_by !== null && typeof obj.superseded_by !== "string") {
+          errors.push("superseded_by must be null or a record ID string.");
+        }
+        if (!obj.provenance || typeof obj.provenance !== "object") {
+          errors.push("provenance object is required.");
+        } else {
+          if (!obj.provenance.actor) errors.push("provenance.actor is required.");
+          if (!obj.provenance.source) errors.push("provenance.source is required.");
+        }
+        if (obj.citations !== undefined) {
+          if (!Array.isArray(obj.citations)) {
+            errors.push("citations must be an array.");
+          } else {
+            obj.citations.forEach((c, i) => {
+              if (!c || typeof c !== "object" || !c.uri) errors.push(`citations[${i}].uri is required.`);
+            });
+          }
+        }
+        return errors;
+      }
+
+      // ---------------------------------------------------------------------
+      // Seed Sample Dataset (Immediate <3-Min Value)
+      // ---------------------------------------------------------------------
+      function buildSeedRecords() {
+        const now = Date.now();
+        const daysAgo = (d) => new Date(now - d * 86400000).toISOString();
+        const daysAhead = (d) => new Date(now + d * 86400000).toISOString();
+
+        return [
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_arch_001",
+            namespace: "public/architecture",
+            key: "zero-build-frontend",
+            title: "Ship console as a single-file vanilla HTML/CSS/JS app",
+            content:
+              "Keep the OpenAgentMemory web console in a single index.html file with zero npm dependencies, zero bundlers, and zero frameworks. Anyone should be able to fork the repo, enable GitHub Pages on the root branch, or double-click index.html locally with zero setup.",
+            kind: "decision",
+            tags: ["architecture", "zero-deps", "github-pages"],
+            confidence: 1.0,
+            valid_from: daysAgo(240),
+            valid_to: null,
+            recorded_at: daysAgo(240),
+            expires_at: null,
+            version: 1,
+            supersedes: null,
+            superseded_by: null,
+            provenance: {
+              actor: "user:maintainer",
+              source: "adr",
+              method: "explicit",
+              trust: "verified",
+              session_id: "adr-001",
+            },
+            citations: [
+              {
+                uri: "https://docs.github.com/en/pages/getting-started-with-github-pages",
+                label: "GitHub Pages Docs",
+                excerpt: "Static HTML files in the repository root publish directly without CI build steps.",
+              },
+            ],
+          },
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_style_v1",
+            namespace: "public/conventions",
+            key: "code-style",
+            title: "Use CommonJS modules and 4-space indentation",
+            content:
+              "Initial convention for helper scripts: CommonJS require() imports with 4-space indentation.",
+            kind: "preference",
+            tags: ["javascript", "formatting"],
+            confidence: 0.9,
+            valid_from: daysAgo(260),
+            valid_to: daysAgo(90),
+            recorded_at: daysAgo(260),
+            expires_at: null,
+            version: 1,
+            supersedes: null,
+            superseded_by: "oam_seed_style_v2",
+            provenance: {
+              actor: "user:maintainer",
+              source: "manual",
+              method: "explicit",
+              trust: "verified",
+              session_id: "seed-v1",
+            },
+            citations: [],
+          },
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_style_v2",
+            namespace: "public/conventions",
+            key: "code-style",
+            title: "Use modern ES modules and 2-space indentation",
+            content:
+              "All JavaScript (including Cloudflare Workers) uses standard ES module syntax, strict mode, 2-space indentation, and native Web APIs (fetch, TextEncoder, crypto.randomUUID) without third-party polyfills.",
+            kind: "preference",
+            tags: ["javascript", "esm", "formatting"],
+            confidence: 1.0,
+            valid_from: daysAgo(90),
+            valid_to: null,
+            recorded_at: daysAgo(90),
+            expires_at: null,
+            version: 2,
+            supersedes: "oam_seed_style_v1",
+            superseded_by: null,
+            provenance: {
+              actor: "agent:code-reviewer",
+              source: "pr-review",
+              method: "consolidated",
+              trust: "verified",
+              session_id: "pr-42",
+            },
+            citations: [
+              {
+                uri: "https://developers.cloudflare.com/workers/runtime-apis/",
+                label: "Cloudflare Workers Web Standards",
+                excerpt: "Workers natively implement Fetch, Web Crypto, and ES Modules.",
+              },
+            ],
+          },
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_shared_001",
+            namespace: "shared/team",
+            key: "release-cadence",
+            title: "Tag minor releases every second Tuesday",
+            content:
+              "Shared team norm (routed to GitHub Gist): cut release tags on alternate Tuesdays after running manual smoke checks on index.html and worker.js. Avoid Friday deployments unless patching a security bug.",
+            kind: "procedure",
+            tags: ["releases", "operations"],
+            confidence: 0.95,
+            valid_from: daysAgo(150),
+            valid_to: null,
+            recorded_at: daysAgo(150),
+            expires_at: null,
+            version: 1,
+            supersedes: null,
+            superseded_by: null,
+            provenance: {
+              actor: "user:team-lead",
+              source: "conversation",
+              method: "explicit",
+              trust: "verified",
+              session_id: null,
+            },
+            citations: [],
+          },
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_priv_pref_001",
+            namespace: "private/preferences",
+            key: "agent-tone",
+            title: "Prefer concise diffs and explain non-obvious trade-offs",
+            content:
+              "When proposing code changes, skip pleasantries, show minimal focused diffs, and highlight security or bitemporal edge cases before writing code. Never introduce paid SaaS dependencies or build chains without explicit approval.",
+            kind: "preference",
+            tags: ["communication", "workflow"],
+            confidence: 1.0,
+            valid_from: daysAgo(120),
+            valid_to: null,
+            recorded_at: daysAgo(120),
+            expires_at: null,
+            version: 1,
+            supersedes: null,
+            superseded_by: null,
+            provenance: {
+              actor: "user:local",
+              source: "manual",
+              method: "explicit",
+              trust: "verified",
+              session_id: null,
+            },
+            citations: [],
+          },
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_priv_db_v1",
+            namespace: "private/architecture",
+            key: "storage-backend",
+            title: "Single-file JSON stored in local Downloads folder",
+            content:
+              "Earlier personal workflow stored agent notes as an unversioned JSON dump in ~/Downloads. Replaced by Git-backed private/ memories for auditability.",
+            kind: "fact",
+            tags: ["storage", "history"],
+            confidence: 1.0,
+            valid_from: daysAgo(300),
+            valid_to: daysAgo(75),
+            recorded_at: daysAgo(300),
+            expires_at: null,
+            version: 1,
+            supersedes: null,
+            superseded_by: "oam_seed_priv_db_v2",
+            provenance: {
+              actor: "user:local",
+              source: "manual",
+              method: "explicit",
+              trust: "verified",
+              session_id: null,
+            },
+            citations: [],
+          },
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_priv_db_v2",
+            namespace: "private/architecture",
+            key: "storage-backend",
+            title: "Fail-closed GitHub Repo for private/* memories",
+            content:
+              "All private/* and unrecognized namespaces route exclusively to a private GitHub repository under memories/<namespace>/<key>.json with a consolidated memories/index.json for single-request reads.",
+            kind: "decision",
+            tags: ["storage", "security", "git"],
+            confidence: 1.0,
+            valid_from: daysAgo(75),
+            valid_to: null,
+            recorded_at: daysAgo(75),
+            expires_at: null,
+            version: 2,
+            supersedes: "oam_seed_priv_db_v1",
+            superseded_by: null,
+            provenance: {
+              actor: "user:local",
+              source: "adr",
+              method: "explicit",
+              trust: "verified",
+              session_id: "adr-004",
+            },
+            citations: [
+              {
+                uri: "oam://public/architecture/zero-build-frontend",
+                label: "Zero-Build Frontend Decision",
+                excerpt: "Aligned with zero paid infrastructure constraint.",
+              },
+            ],
+          },
+          {
+            schema: RECORD_SCHEMA,
+            id: "oam_seed_priv_ttl_001",
+            namespace: "private/context",
+            key: "sprint-deploy-freeze",
+            title: "Temporary freeze on schema migrations for 14 days",
+            content:
+              "Hold off on destructive migrations while finishing Q4 audit checks. Because this is temporary operational context, it carries an expires_at TTL so agents automatically stop seeing it once the freeze lifts.",
+            kind: "constraint",
+            tags: ["temporary", "ttl", "operations"],
+            confidence: 1.0,
+            valid_from: daysAgo(2),
+            valid_to: null,
+            recorded_at: daysAgo(2),
+            expires_at: daysAhead(14),
+            version: 1,
+            supersedes: null,
+            superseded_by: null,
+            provenance: {
+              actor: "user:local",
+              source: "conversation",
+              method: "explicit",
+              trust: "verified",
+              session_id: null,
+            },
+            citations: [],
+          },
+        ];
+      }
+
+      // ---------------------------------------------------------------------
+      // Storage Persistence (localStorage, GitHub Repo, Cloudflare Worker)
+      // ---------------------------------------------------------------------
+      function loadLocalRecords() {
+        try {
+          const raw = localStorage.getItem(LS_RECORDS_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch {
+          // fallback to seed
+        }
+        const seeded = buildSeedRecords();
+        saveLocalRecords(seeded);
+        return seeded;
+      }
+
+      function saveLocalRecords(records) {
+        try {
+          localStorage.setItem(LS_RECORDS_KEY, JSON.stringify(records));
+        } catch (err) {
+          toast("Unable to write to localStorage: " + err.message, true);
+        }
+      }
+
+      function loadBackendConfig() {
+        try {
+          const cfg = JSON.parse(localStorage.getItem(LS_CONFIG_KEY) || "{}");
+          if (cfg.mode) state.backend.mode = cfg.mode;
+          if (cfg.github) Object.assign(state.backend.github, cfg.github);
+          if (cfg.worker) Object.assign(state.backend.worker, cfg.worker);
+
+          const persistedSecrets = JSON.parse(localStorage.getItem(LS_SECRETS_KEY) || "{}");
+          const sessionSecrets = JSON.parse(sessionStorage.getItem(SS_SECRETS_KEY) || "{}");
+          state.backend.github.token = sessionSecrets.ghToken || persistedSecrets.ghToken || "";
+          state.backend.worker.token = sessionSecrets.wkToken || persistedSecrets.wkToken || "";
+        } catch {
+          // ignore malformed stored config
+        }
+      }
+
+      function saveBackendConfig() {
+        const publicCfg = {
+          mode: state.backend.mode,
+          github: {
+            repo: state.backend.github.repo,
+            branch: state.backend.github.branch || "main",
+            remember: Boolean(state.backend.github.remember),
+          },
+          worker: {
+            url: state.backend.worker.url,
+            remember: Boolean(state.backend.worker.remember),
+          },
+        };
+        localStorage.setItem(LS_CONFIG_KEY, JSON.stringify(publicCfg));
+
+        const ss = {
+          ghToken: state.backend.github.token || "",
+          wkToken: state.backend.worker.token || "",
+        };
+        sessionStorage.setItem(SS_SECRETS_KEY, JSON.stringify(ss));
+
+        const lsSec = {
+          ghToken: state.backend.github.remember ? state.backend.github.token || "" : "",
+          wkToken: state.backend.worker.remember ? state.backend.worker.token || "" : "",
+        };
+        localStorage.setItem(LS_SECRETS_KEY, JSON.stringify(lsSec));
+        updateBackendIndicator();
+      }
+
+      // --- Private GitHub Repo Client ---
+      function ghHeaders(token) {
+        return {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        };
+      }
+
+      async function ghReadFile(repo, branch, token, path) {
+        const encPath = path.split("/").map(encodeURIComponent).join("/");
+        const url = `https://api.github.com/repos/${repo}/contents/${encPath}?ref=${encodeURIComponent(branch)}`;
+        const res = await fetch(url, { headers: ghHeaders(token) });
+        if (res.status === 404) return null;
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.message || `GitHub HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        return { sha: data.sha, json: JSON.parse(fromBase64Utf8(data.content || "")) };
+      }
+
+      async function ghWriteFile(repo, branch, token, path, jsonObj, message, sha = null) {
+        const encPath = path.split("/").map(encodeURIComponent).join("/");
+        const url = `https://api.github.com/repos/${repo}/contents/${encPath}`;
+        const body = {
+          message,
+          content: toBase64Utf8(JSON.stringify(jsonObj, null, 2) + "\n"),
+          branch,
+        };
+        if (sha) body.sha = sha;
+        const res = await fetch(url, {
+          method: "PUT",
+          headers: { ...ghHeaders(token), "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || `GitHub write failed (${res.status})`);
+        }
+        return res.json();
+      }
+
+      async function ghPullAll(repo, branch, token) {
+        const idx = await ghReadFile(repo, branch, token, "memories/index.json");
+        if (idx && idx.json && Array.isArray(idx.json.records)) {
+          return idx.json.records;
+        }
+        return [];
+      }
+
+      async function ghSyncKeyAndIndex(repo, branch, token, namespace, key, allRecords, commitMsg) {
+        const chain = allRecords.filter((r) => r.namespace === namespace && r.key === key);
+        const chainPath = `memories/${namespace}/${key}.json`;
+        const existingChain = await ghReadFile(repo, branch, token, chainPath);
+        const nowIso = new Date().toISOString();
+
+        if (chain.length > 0) {
+          await ghWriteFile(
+            repo,
+            branch,
+            token,
+            chainPath,
+            { schema: CHAIN_SCHEMA, namespace, key, updated_at: nowIso, records: chain },
+            commitMsg,
+            existingChain ? existingChain.sha : null
+          );
+        } else if (existingChain) {
+          const encPath = chainPath.split("/").map(encodeURIComponent).join("/");
+          await fetch(`https://api.github.com/repos/${repo}/contents/${encPath}`, {
+            method: "DELETE",
+            headers: { ...ghHeaders(token), "Content-Type": "application/json" },
+            body: JSON.stringify({ message: commitMsg, sha: existingChain.sha, branch }),
+          });
+        }
+
+        const existingIdx = await ghReadFile(repo, branch, token, "memories/index.json");
+        await ghWriteFile(
+          repo,
+          branch,
+          token,
+          "memories/index.json",
+          { schema: INDEX_SCHEMA, updated_at: nowIso, records: allRecords },
+          `oam(index): ${namespace}/${key}`,
+          existingIdx ? existingIdx.sha : null
+        );
+      }
+
+      async function ghPushAllRecords(repo, branch, token, records) {
+        const grouped = new Map();
+        for (const r of records) {
+          const k = `${r.namespace}::${r.key}`;
+          if (!grouped.has(k)) grouped.set(k, []);
+          grouped.get(k).push(r);
+        }
+        const nowIso = new Date().toISOString();
+        for (const [compound, chain] of grouped.entries()) {
+          const [namespace, key] = compound.split("::");
+          const filePath = `memories/${namespace}/${key}.json`;
+          const existing = await ghReadFile(repo, branch, token, filePath);
+          await ghWriteFile(
+            repo,
+            branch,
+            token,
+            filePath,
+            { schema: CHAIN_SCHEMA, namespace, key, updated_at: nowIso, records: chain },
+            `oam(sync): ${namespace}/${key}`,
+            existing ? existing.sha : null
+          );
+        }
+        const existingIdx = await ghReadFile(repo, branch, token, "memories/index.json");
+        await ghWriteFile(
+          repo,
+          branch,
+          token,
+          "memories/index.json",
+          { schema: INDEX_SCHEMA, updated_at: nowIso, records },
+          `oam(sync): update index (${records.length} records)`,
+          existingIdx ? existingIdx.sha : null
+        );
+      }
+
+      // --- Cloudflare Worker Client ---
+      function workerHeaders(token) {
+        const h = { "Content-Type": "application/json" };
+        if (token) h.Authorization = `Bearer ${token}`;
+        return h;
+      }
+
+      async function workerFetchRecords(baseUrl, token) {
+        const cleanUrl = baseUrl.replace(/\/+$/, "");
+        const res = await fetch(
+          `${cleanUrl}/records?include_superseded=true&include_expired=true&as_of=${encodeURIComponent(new Date().toISOString())}`,
+          { headers: workerHeaders(token) }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Worker HTTP ${res.status}`);
+        return Array.isArray(data.records) ? data.records : [];
+      }
+
+      async function workerSaveRecord(baseUrl, token, record, closePreviousValidTo) {
+        const cleanUrl = baseUrl.replace(/\/+$/, "");
+        const res = await fetch(`${cleanUrl}/records`, {
+          method: "POST",
+          headers: workerHeaders(token),
+          body: JSON.stringify({ ...record, close_previous_valid_to: closePreviousValidTo }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Worker HTTP ${res.status}`);
+        return data;
+      }
+
+      async function workerDeleteOrExpire(baseUrl, token, record, mode) {
+        const cleanUrl = baseUrl.replace(/\/+$/, "");
+        const qs = new URLSearchParams({
+          namespace: record.namespace,
+          key: record.key,
+          id: record.id,
+          mode,
+        });
+        const res = await fetch(`${cleanUrl}/records?${qs.toString()}`, {
+          method: "DELETE",
+          headers: workerHeaders(token),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Worker HTTP ${res.status}`);
+        return data;
+      }
+
+      // ---------------------------------------------------------------------
+      // Record Status & Bitemporal Query Engine
+      // ---------------------------------------------------------------------
+      function evaluateRecordStatus(rec, asOfMs) {
+        const expired = rec.expires_at ? Date.parse(rec.expires_at) <= asOfMs : false;
+        const validFromMs = Date.parse(rec.valid_from);
+        const validToMs = rec.valid_to ? Date.parse(rec.valid_to) : Infinity;
+        const inWindow = asOfMs >= validFromMs && asOfMs < validToMs;
+        const isHead = rec.superseded_by === null;
+
+        if (expired) return { code: "expired", label: "Expired", badgeClass: "badge-expired" };
+        if (!isHead && inWindow) return { code: "historical", label: "Historical (Valid Then)", badgeClass: "badge-historical" };
+        if (!isHead) return { code: "superseded", label: "Superseded", badgeClass: "badge-superseded" };
+        if (asOfMs < validFromMs) return { code: "scheduled", label: "Future", badgeClass: "badge-historical" };
+        if (asOfMs >= validToMs) return { code: "ended", label: "Ended", badgeClass: "badge-superseded" };
+        return { code: "active", label: "Active", badgeClass: "badge-active" };
+      }
+
+      function getFilteredRecords() {
+        const asOfMs = Date.parse(state.filters.asOfIso) || Date.now();
+        const q = state.filters.q.trim().toLowerCase();
+        const nsFilter = state.filters.namespace;
+        const isPastTravel = Math.abs(Date.now() - asOfMs) > 60000;
+
+        return state.records
+          .filter((rec) => {
+            if (nsFilter !== "all") {
+              if (!(rec.namespace === nsFilter || rec.namespace.startsWith(`${nsFilter}/`))) {
+                return false;
+              }
+            }
+
+            const validFromMs = Date.parse(rec.valid_from);
+            const validToMs = rec.valid_to ? Date.parse(rec.valid_to) : Infinity;
+            const inValidWindow = asOfMs >= validFromMs && asOfMs < validToMs;
+
+            // If user isn't explicitly viewing superseded records:
+            // - At "now", hide superseded records
+            // - During historical time-travel, allow superseded records whose [valid_from, valid_to) covers asOfMs
+            if (!state.filters.includeSuperseded) {
+              if (rec.superseded_by !== null) {
+                if (!(isPastTravel && inValidWindow)) return false;
+              }
+            }
+
+            if (!state.filters.includeExpired && rec.expires_at) {
+              if (Date.parse(rec.expires_at) <= asOfMs) return false;
+            }
+
+            if (!state.filters.includeSuperseded && !inValidWindow) {
+              return false;
+            }
+
+            if (q) {
+              const hay = [
+                `oam://${rec.namespace}/${rec.key}`,
+                rec.namespace,
+                rec.key,
+                rec.title,
+                rec.content,
+                rec.kind,
+                rec.provenance?.actor,
+                rec.provenance?.source,
+                ...(rec.tags || []),
+                ...(rec.citations || []).map((c) => `${c.label || ""} ${c.uri || ""} ${c.excerpt || ""}`),
+              ]
+                .join(" ")
+                .toLowerCase();
+              if (!hay.includes(q)) return false;
+            }
+
+            return true;
+          })
+          .sort((a, b) => {
+            const ns = a.namespace.localeCompare(b.namespace);
+            if (ns !== 0) return ns;
+            const k = a.key.localeCompare(b.key);
+            if (k !== 0) return k;
+            return (b.version || 1) - (a.version || 1);
+          });
+      }
+
+      // ---------------------------------------------------------------------
+      // Mutations (Create / Supersede / Expire / Delete)
+      // ---------------------------------------------------------------------
+      function applyLocalUpsert(newRec, closePreviousValidTo) {
+        const next = state.records.map((r) => ({ ...r }));
+        const existingHeadIdx = next.findIndex(
+          (r) => r.namespace === newRec.namespace && r.key === newRec.key && r.superseded_by === null
+        );
+
+        if (existingHeadIdx !== -1) {
+          const prev = next[existingHeadIdx];
+          prev.superseded_by = newRec.id;
+          if (closePreviousValidTo && prev.valid_to === null) {
+            const prevFromMs = Date.parse(prev.valid_from);
+            const newFromMs = Date.parse(newRec.valid_from);
+            prev.valid_to = newFromMs >= prevFromMs ? newRec.valid_from : prev.valid_from;
+          }
+          newRec.supersedes = prev.id;
+          newRec.version = (prev.version || 1) + 1;
+        } else {
+          const sameKey = next.filter((r) => r.namespace === newRec.namespace && r.key === newRec.key);
+          const maxV = sameKey.reduce((m, r) => Math.max(m, r.version || 1), 0);
+          newRec.version = maxV + 1;
+        }
+
+        next.push(newRec);
+        state.records = next;
+        saveLocalRecords(next);
+        return newRec;
+      }
+
+      async function persistRecord(newRec, closePreviousValidTo) {
+        if (state.backend.mode === "worker") {
+          const { url, token } = state.backend.worker;
+          const res = await workerSaveRecord(url, token, newRec, closePreviousValidTo);
+          state.records = await workerFetchRecords(url, token);
+          saveLocalRecords(state.records);
+          return res.record;
+        }
+
+        const saved = applyLocalUpsert(newRec, closePreviousValidTo);
+
+        if (state.backend.mode === "github") {
+          const { repo, branch, token } = state.backend.github;
+          await ghSyncKeyAndIndex(
+            repo,
+            branch,
+            token,
+            saved.namespace,
+            saved.key,
+            state.records,
+            `oam(${saved.supersedes ? "supersede" : "create"}): ${saved.namespace}/${saved.key} v${saved.version}`
+          );
+        }
+        return saved;
+      }
+
+      async function expireRecord(rec) {
+        if (state.backend.mode === "worker") {
+          const { url, token } = state.backend.worker;
+          await workerDeleteOrExpire(url, token, rec, "expire");
+          state.records = await workerFetchRecords(url, token);
+          saveLocalRecords(state.records);
+          return;
+        }
+
+        const nowIso = new Date().toISOString();
+        state.records = state.records.map((r) => (r.id === rec.id ? { ...r, expires_at: nowIso } : r));
+        saveLocalRecords(state.records);
+
+        if (state.backend.mode === "github") {
+          const { repo, branch, token } = state.backend.github;
+          await ghSyncKeyAndIndex(
+            repo,
+            branch,
+            token,
+            rec.namespace,
+            rec.key,
+            state.records,
+            `oam(expire): ${rec.namespace}/${rec.key}`
+          );
+        }
+      }
+
+      async function deleteRecord(rec) {
+        if (state.backend.mode === "worker") {
+          const { url, token } = state.backend.worker;
+          await workerDeleteOrExpire(url, token, rec, "hard");
+          state.records = await workerFetchRecords(url, token);
+          saveLocalRecords(state.records);
+          return;
+        }
+
+        // If deleting a head that superseded a previous version, keep lineage tidy
+        state.records = state.records
+          .filter((r) => r.id !== rec.id)
+          .map((r) => (r.superseded_by === rec.id ? { ...r, superseded_by: rec.superseded_by || null } : r));
+        saveLocalRecords(state.records);
+
+        if (state.backend.mode === "github") {
+          const { repo, branch, token } = state.backend.github;
+          await ghSyncKeyAndIndex(
+            repo,
+            branch,
+            token,
+            rec.namespace,
+            rec.key,
+            state.records,
+            `oam(delete): ${rec.namespace}/${rec.key}`
+          );
+        }
+      }
+
+      // ---------------------------------------------------------------------
+      // Export Formatters
+      // ---------------------------------------------------------------------
+      function generateAgentsMarkdown(nsFilter = "all", includeCitations = true) {
+        const nowMs = Date.now();
+        const active = state.records
+          .filter((r) => {
+            if (r.superseded_by !== null) return false;
+            if (r.expires_at && Date.parse(r.expires_at) <= nowMs) return false;
+            if (Date.parse(r.valid_from) > nowMs) return false;
+            if (r.valid_to && Date.parse(r.valid_to) <= nowMs) return false;
+            if (nsFilter !== "all" && !(r.namespace === nsFilter || r.namespace.startsWith(`${nsFilter}/`))) {
+              return false;
+            }
+            return true;
+          })
+          .sort((a, b) => a.namespace.localeCompare(b.namespace) || a.key.localeCompare(b.key));
+
+        const lines = [
+          "# AGENTS.md — OpenAgentMemory Context",
+          "",
+          `> Generated by OpenAgentMemory (\`${RECORD_SCHEMA}\`)`,
+          `> Exported: \`${new Date().toISOString()}\` · Active memories: **${active.length}**`,
+          "",
+        ];
+
+        if (active.length === 0) {
+          lines.push("_No active, non-expired memories matched the selected namespace._", "");
+          return lines.join("\n");
+        }
+
+        const grouped = new Map();
+        for (const r of active) {
+          if (!grouped.has(r.namespace)) grouped.set(r.namespace, []);
+          grouped.get(r.namespace).push(r);
+        }
+
+        for (const ns of Array.from(grouped.keys()).sort()) {
+          const route = routeNamespace(ns);
+          lines.push(`## \`${ns}\` (${route === "gist" ? "Gist · public/shared" : "Private Repo"})`, "");
+          for (const r of grouped.get(ns)) {
+            const meta = [
+              `\`oam://${r.namespace}/${r.key}\``,
+              `kind: \`${r.kind || "fact"}\``,
+              `v${r.version || 1}`,
+              `valid from: ${fmtShortDate(r.valid_from)}`,
+            ];
+            if (r.expires_at) meta.push(`expires: ${fmtShortDate(r.expires_at)}`);
+            lines.push(`### ${r.title}`, "", `_${meta.join(" · ")}_`, "", r.content, "");
+            if (includeCitations && Array.isArray(r.citations) && r.citations.length > 0) {
+              lines.push("**Citations:**");
+              for (const c of r.citations) {
+                const label = c.label || c.uri;
+                const excerpt = c.excerpt ? ` — "${c.excerpt}"` : "";
+                lines.push(`- [${label}](${c.uri})${excerpt}`);
+              }
+              lines.push("");
+            }
+          }
+        }
+        return lines.join("\n");
+      }
+
+      function generateJsonBundle(includeAll = true) {
+        const nowMs = Date.now();
+        const records = includeAll
+          ? state.records
+          : state.records.filter(
+              (r) =>
+                r.superseded_by === null &&
+                (!r.expires_at || Date.parse(r.expires_at) > nowMs) &&
+                Date.parse(r.valid_from) <= nowMs &&
+                (!r.valid_to || Date.parse(r.valid_to) > nowMs)
+            );
+        return JSON.stringify(
+          {
+            schema: BUNDLE_SCHEMA,
+            record_schema: RECORD_SCHEMA,
+            exported_at: new Date().toISOString(),
+            count: records.length,
+            records,
+          },
+          null,
+          2
+        );
+      }
+
+      // ---------------------------------------------------------------------
+      // Rendering
+      // ---------------------------------------------------------------------
+      function renderMetrics() {
+        const nowMs = Date.now();
+        const heads = state.records.filter(
+          (r) =>
+            r.superseded_by === null &&
+            (!r.expires_at || Date.parse(r.expires_at) > nowMs) &&
+            Date.parse(r.valid_from) <= nowMs &&
+            (!r.valid_to || Date.parse(r.valid_to) > nowMs)
+        );
+        const gistCount = heads.filter((r) => routeNamespace(r.namespace) === "gist").length;
+        const repoCount = heads.length - gistCount;
+
+        document.getElementById("metric-active").textContent = String(heads.length);
+        document.getElementById("metric-total").textContent = String(state.records.length);
+        document.getElementById("metric-gist").textContent = String(gistCount);
+        document.getElementById("metric-repo").textContent = String(repoCount);
+      }
+
+      function renderRecordList() {
+        const listEl = document.getElementById("record-list");
+        const filtered = getFilteredRecords();
+        const asOfMs = Date.parse(state.filters.asOfIso) || Date.now();
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = `<div class="empty-state">No memories match the current filter and <strong>Valid At</strong> timestamp.<br/><span style="font-size:12.5px;">Try clearing the search, switching namespaces, or clicking <strong>Now</strong>.</span></div>`;
+          renderInspector();
+          return;
+        }
+
+        if (!state.selectedId || !state.records.some((r) => r.id === state.selectedId)) {
+          state.selectedId = filtered[0].id;
+        }
+
+        listEl.innerHTML = filtered
+          .map((rec) => {
+            const status = evaluateRecordStatus(rec, asOfMs);
+            const route = routeNamespace(rec.namespace);
+            const selected = rec.id === state.selectedId ? "selected" : "";
+            const routeLabel = route === "gist" ? "Gist" : "Private Repo";
+            const routeCls = route === "gist" ? "badge-route-gist" : "badge-route-repo";
+            const citCount = Array.isArray(rec.citations) ? rec.citations.length : 0;
+
+            return `
+              <div class="record-item ${selected}" role="option" aria-selected="${Boolean(selected)}" data-id="${escapeHtml(rec.id)}">
+                <div class="record-top">
+                  <span class="record-address">oam://${escapeHtml(rec.namespace)}/${escapeHtml(rec.key)}</span>
+                  <div style="display:flex; gap:5px; align-items:center;">
+                    <span class="badge ${routeCls}">${routeLabel}</span>
+                    <span class="badge ${status.badgeClass}">${status.label}</span>
+                  </div>
+                </div>
+                <div class="record-title">${escapeHtml(rec.title)}</div>
+                <p class="record-snippet">${escapeHtml(rec.content)}</p>
+                <div class="record-meta-row">
+                  <span class="badge badge-tag">${escapeHtml(rec.kind || "fact")}</span>
+                  <span class="mono">v${rec.version || 1}</span>
+                  <span>· valid ${fmtShortDate(rec.valid_from)} → ${fmtShortDate(rec.valid_to)}</span>
+                  ${rec.expires_at ? `<span>· TTL ${fmtShortDate(rec.expires_at)}</span>` : ""}
+                  ${citCount > 0 ? `<span>· ${citCount} citation${citCount === 1 ? "" : "s"}</span>` : ""}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        listEl.querySelectorAll(".record-item").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.selectedId = el.getAttribute("data-id");
+            state.showRawJson = false;
+            renderRecordList();
+            renderInspector();
+          });
+        });
+
+        renderInspector();
+      }
+
+      function renderInspector() {
+        const bodyEl = document.getElementById("inspector-body");
+        const actionsEl = document.getElementById("inspector-actions");
+        const rec = state.records.find((r) => r.id === state.selectedId);
+
+        if (!rec) {
+          actionsEl.innerHTML = "";
+          bodyEl.innerHTML = `<div class="empty-state">Select a memory on the left to inspect its bitemporal validity, provenance, citations, and version chain.</div>`;
+          return;
+        }
+
+        const asOfMs = Date.parse(state.filters.asOfIso) || Date.now();
+        const status = evaluateRecordStatus(rec, asOfMs);
+        const route = routeNamespace(rec.namespace);
+        const address = `oam://${rec.namespace}/${rec.key}`;
+        const chain = state.records
+          .filter((r) => r.namespace === rec.namespace && r.key === rec.key)
+          .sort((a, b) => (b.version || 1) - (a.version || 1));
+
+        actionsEl.innerHTML = `
+          <button class="btn btn-sm" id="insp-toggle-json">${state.showRawJson ? "Rendered" : "JSON"}</button>
+          <button class="btn btn-sm btn-primary" id="insp-supersede">Supersede</button>
+          <button class="btn btn-sm" id="insp-expire" title="Set expires_at to now">Expire</button>
+          <button class="btn btn-sm btn-danger" id="insp-delete" title="Permanently delete this version">Delete</button>
+        `;
+
+        document.getElementById("insp-toggle-json").addEventListener("click", () => {
+          state.showRawJson = !state.showRawJson;
+          renderInspector();
+        });
+        document.getElementById("insp-supersede").addEventListener("click", () => openEditor("supersede", rec));
+        document.getElementById("insp-expire").addEventListener("click", async () => {
+          try {
+            await expireRecord(rec);
+            toast(`Expired ${address} (${rec.id}).`);
+            renderAll();
+          } catch (err) {
+            toast(err.message, true);
+          }
+        });
+        document.getElementById("insp-delete").addEventListener("click", async () => {
+          if (!confirm(`Permanently delete version v${rec.version || 1} of ${address}?`)) return;
+          try {
+            await deleteRecord(rec);
+            state.selectedId = null;
+            toast(`Deleted ${rec.id}.`);
+            renderAll();
+          } catch (err) {
+            toast(err.message, true);
+          }
+        });
+
+        if (state.showRawJson) {
+          bodyEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="mono" style="font-size:12px; color:var(--ink-muted);">${escapeHtml(address)}@${escapeHtml(rec.id)}</span>
+              <button class="btn btn-sm" id="insp-copy-json">Copy JSON</button>
+            </div>
+            <pre class="code-block">${escapeHtml(JSON.stringify(rec, null, 2))}</pre>
+          `;
+          document.getElementById("insp-copy-json").addEventListener("click", () => {
+            copyText(JSON.stringify(rec, null, 2), "Copied record JSON");
+          });
+          return;
+        }
+
+        const tagsHtml = (rec.tags || [])
+          .map((t) => `<span class="badge badge-tag">#${escapeHtml(t)}</span>`)
+          .join(" ");
+
+        const citationsHtml =
+          Array.isArray(rec.citations) && rec.citations.length > 0
+            ? rec.citations
+                .map((c) => {
+                  const href = safeHref(c.uri);
+                  const link = href
+                    ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.label || c.uri)}</a>`
+                    : `<span class="mono" style="font-size:12.5px;">${escapeHtml(c.label || c.uri)}</span>`;
+                  return `
+                    <div class="citation-card">
+                      <div>${link} ${c.label && href ? `<span class="mono" style="font-size:11.5px; color:var(--ink-faint);">(${escapeHtml(c.uri)})</span>` : ""}</div>
+                      ${c.excerpt ? `<p class="citation-excerpt">"${escapeHtml(c.excerpt)}"</p>` : ""}
+                    </div>
+                  `;
+                })
+                .join("")
+            : `<div style="font-size:13px; color:var(--ink-faint);">No citations attached.</div>`;
+
+        const lineageHtml = chain
+          .map((v) => {
+            const isCur = v.id === rec.id;
+            const headLabel = v.superseded_by === null ? `<span class="badge badge-active">HEAD</span>` : `<span class="badge badge-superseded">superseded</span>`;
+            return `
+              <div class="lineage-item ${isCur ? "current" : ""}" data-lineage-id="${escapeHtml(v.id)}">
+                <div>
+                  <strong class="mono">v${v.version || 1}</strong>
+                  <span style="margin-left:6px;">${escapeHtml(v.title)}</span>
+                  <div class="mono" style="font-size:11px; color:var(--ink-faint);">
+                    ${escapeHtml(v.id)} · valid ${fmtShortDate(v.valid_from)} → ${fmtShortDate(v.valid_to)}
+                  </div>
+                </div>
+                ${headLabel}
+              </div>
+            `;
+          })
+          .join("");
+
+        bodyEl.innerHTML = `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+            <span class="mono" style="font-size:12.5px; color:var(--ink-muted);">${escapeHtml(address)}</span>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="badge ${route === "gist" ? "badge-route-gist" : "badge-route-repo"}">
+                Route: ${route === "gist" ? "GitHub Gist" : "Private Repo"}
+              </span>
+              <span class="badge ${status.badgeClass}">${status.label}</span>
+              <span class="badge badge-tag">${escapeHtml(rec.kind || "fact")} · v${rec.version || 1}</span>
+            </div>
+          </div>
+
+          <h3 class="detail-heading">${escapeHtml(rec.title)}</h3>
+          ${tagsHtml ? `<div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;">${tagsHtml}</div>` : ""}
+
+          <div class="detail-content">${escapeHtml(rec.content)}</div>
+
+          <div class="sub-heading">Bitemporal Validity &amp; Retention</div>
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <div class="meta-cell-label">Valid From (Domain)</div>
+              <div class="meta-cell-value">${escapeHtml(fmtDate(rec.valid_from))}</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-cell-label">Valid To (Domain)</div>
+              <div class="meta-cell-value">${escapeHtml(fmtDate(rec.valid_to))}</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-cell-label">Recorded At (System)</div>
+              <div class="meta-cell-value">${escapeHtml(fmtDate(rec.recorded_at))}</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-cell-label">Expires At (TTL)</div>
+              <div class="meta-cell-value">${rec.expires_at ? escapeHtml(fmtDate(rec.expires_at)) : "none"}</div>
+            </div>
+          </div>
+
+          <div class="sub-heading">Provenance &amp; Identity</div>
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <div class="meta-cell-label">Actor / Source</div>
+              <div class="meta-cell-value">${escapeHtml(rec.provenance?.actor || "unknown")} · ${escapeHtml(rec.provenance?.source || "unknown")}</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-cell-label">Trust / Method / Confidence</div>
+              <div class="meta-cell-value">${escapeHtml(rec.provenance?.trust || "verified")} · ${escapeHtml(rec.provenance?.method || "explicit")} · ${Math.round((rec.confidence ?? 1) * 100)}%</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-cell-label">Record ID</div>
+              <div class="meta-cell-value">${escapeHtml(rec.id)}</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-cell-label">Superseded By</div>
+              <div class="meta-cell-value">${rec.superseded_by ? escapeHtml(rec.superseded_by) : "null (current head)"}</div>
+            </div>
+          </div>
+
+          <div class="sub-heading">Citations (${Array.isArray(rec.citations) ? rec.citations.length : 0})</div>
+          ${citationsHtml}
+
+          <div class="sub-heading">Version Lineage (${chain.length} version${chain.length === 1 ? "" : "s"})</div>
+          <div class="lineage-list">${lineageHtml}</div>
+        `;
+
+        bodyEl.querySelectorAll("[data-lineage-id]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.selectedId = el.getAttribute("data-lineage-id");
+            renderRecordList();
+            renderInspector();
+          });
+        });
+      }
+
+      function updateBackendIndicator() {
+        const label = document.getElementById("backend-label");
+        const syncBtn = document.getElementById("btn-sync-backend");
+        if (state.backend.mode === "github") {
+          label.textContent = `GitHub: ${state.backend.github.repo || "unconfigured"}`;
+          syncBtn.style.display = "inline-flex";
+        } else if (state.backend.mode === "worker") {
+          label.textContent = "Cloudflare Worker";
+          syncBtn.style.display = "inline-flex";
+        } else {
+          label.textContent = "Local Browser";
+          syncBtn.style.display = "none";
+        }
+      }
+
+      function renderAll() {
+        renderMetrics();
+        renderRecordList();
+        updateBackendIndicator();
+      }
+
+      // ---------------------------------------------------------------------
+      // Editor Modal (Create / Supersede)
+      // ---------------------------------------------------------------------
+      function addCitationRow(c = { uri: "", label: "", excerpt: "" }) {
+        const container = document.getElementById("citations-container");
+        const row = document.createElement("div");
+        row.className = "citation-editor-row";
+        row.innerHTML = `
+          <input class="input mono cit-uri" placeholder="https://... or oam://..." value="${escapeHtml(c.uri || "")}" />
+          <input class="input cit-label" placeholder="Label (optional)" value="${escapeHtml(c.label || "")}" />
+          <input class="input cit-excerpt" placeholder="Short excerpt (optional)" value="${escapeHtml(c.excerpt || "")}" />
+          <button type="button" class="btn btn-sm btn-ghost cit-remove" title="Remove citation">×</button>
+        `;
+        row.querySelector(".cit-remove").addEventListener("click", () => row.remove());
+        container.appendChild(row);
+      }
+
+      function updateRoutePreview() {
+        const ns = document.getElementById("f-namespace").value.trim();
+        const key = document.getElementById("f-key").value.trim();
+        const box = document.getElementById("f-route-preview");
+        if (!ns) {
+          box.className = "callout";
+          box.innerHTML = "Enter a namespace to preview fail-closed routing.";
+          return;
+        }
+        const route = routeNamespace(ns);
+        const addr = `oam://${ns}/${key || "<key>"}`;
+        if (route === "gist") {
+          box.className = "callout callout-accent";
+          box.innerHTML = `<strong>${escapeHtml(addr)}</strong> → routes to <strong>GitHub Gist</strong> (<code>public/*</code> or <code>shared/*</code>)`;
+        } else {
+          box.className = "callout";
+          box.innerHTML = `<strong>${escapeHtml(addr)}</strong> → routes to <strong>Private GitHub Repo</strong> (fail-closed private boundary)`;
+        }
+      }
+
+      function openEditor(mode = "create", baseRecord = null) {
+        state.editor.mode = mode;
+        state.editor.supersedingRecord = baseRecord;
+
+        const form = document.getElementById("memory-form");
+        form.reset();
+        document.getElementById("editor-errors").style.display = "none";
+        document.getElementById("citations-container").innerHTML = "";
+
+        const banner = document.getElementById("editor-supersede-banner");
+        const closePrevWrap = document.getElementById("f-close-prev-wrap");
+        const nsEl = document.getElementById("f-namespace");
+        const keyEl = document.getElementById("f-key");
+        const nowIso = new Date().toISOString();
+
+        if (mode === "supersede" && baseRecord) {
+          document.getElementById("editor-title").textContent = `Supersede oam://${baseRecord.namespace}/${baseRecord.key}`;
+          banner.style.display = "block";
+          banner.innerHTML = `Creating <strong>v${(baseRecord.version || 1) + 1}</strong> superseding <code>${escapeHtml(baseRecord.id)}</code>. The prior version remains preserved in lineage.`;
+          closePrevWrap.style.display = "flex";
+          document.getElementById("f-close-prev").checked = true;
+
+          nsEl.value = baseRecord.namespace;
+          keyEl.value = baseRecord.key;
+          nsEl.readOnly = true;
+          keyEl.readOnly = true;
+
+          document.getElementById("f-title").value = baseRecord.title;
+          document.getElementById("f-content").value = baseRecord.content;
+          document.getElementById("f-kind").value = baseRecord.kind || "fact";
+          document.getElementById("f-confidence").value = String(baseRecord.confidence ?? 1.0);
+          document.getElementById("f-tags").value = (baseRecord.tags || []).join(", ");
+          document.getElementById("f-valid-from").value = toDatetimeLocalValue(nowIso);
+          document.getElementById("f-valid-to").value = "";
+          document.getElementById("f-expires-at").value = toDatetimeLocalValue(baseRecord.expires_at);
+          document.getElementById("f-actor").value = baseRecord.provenance?.actor || "user:local";
+          document.getElementById("f-source").value = "manual";
+          document.getElementById("f-trust").value = baseRecord.provenance?.trust || "verified";
+          document.getElementById("f-method").value = "explicit";
+          (baseRecord.citations || []).forEach((c) => addCitationRow(c));
+        } else {
+          document.getElementById("editor-title").textContent = "New Memory (oam.record.v1)";
+          banner.style.display = "none";
+          closePrevWrap.style.display = "none";
+          nsEl.readOnly = false;
+          keyEl.readOnly = false;
+          nsEl.value = "private/notes";
+          keyEl.value = "";
+          document.getElementById("f-kind").value = "fact";
+          document.getElementById("f-confidence").value = "1.0";
+          document.getElementById("f-valid-from").value = toDatetimeLocalValue(nowIso);
+          document.getElementById("f-actor").value = "user:local";
+          document.getElementById("f-source").value = "manual";
+        }
+
+        updateRoutePreview();
+        openModal("modal-editor");
+      }
+
+      // ---------------------------------------------------------------------
+      // Modal & UI Helpers
+      // ---------------------------------------------------------------------
+      function openModal(id) {
+        document.getElementById(id).classList.add("open");
+      }
+      function closeModal(id) {
+        document.getElementById(id).classList.remove("open");
+      }
+
+      function toast(message, isError = false) {
+        const region = document.getElementById("toast-region");
+        const el = document.createElement("div");
+        el.className = `toast${isError ? " error" : ""}`;
+        el.textContent = message;
+        region.appendChild(el);
+        setTimeout(() => el.remove(), 3400);
+      }
+
+      async function copyText(text, successMsg) {
+        try {
+          await navigator.clipboard.writeText(text);
+          toast(successMsg);
+        } catch {
+          toast("Clipboard copy blocked by browser.", true);
+        }
+      }
+
+      function downloadFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function switchView(viewName) {
+        document.querySelectorAll(".nav-tab[data-view]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-view") === viewName);
+        });
+        document.querySelectorAll(".view-section").forEach((sec) => {
+          sec.classList.toggle("active", sec.id === `view-${viewName}`);
+        });
+      }
+
+      function refreshExportPreviews() {
+        const ns = document.getElementById("exp-agents-ns").value;
+        const incCit = document.getElementById("exp-agents-citations").checked;
+        document.getElementById("exp-agents-preview").value = generateAgentsMarkdown(ns, incCit);
+
+        const incAll = document.getElementById("exp-json-all").checked;
+        document.getElementById("exp-json-preview").value = generateJsonBundle(incAll);
+      }
+
+      function syncBackendModalInputs() {
+        document.getElementById("gh-repo").value = state.backend.github.repo || "";
+        document.getElementById("gh-branch").value = state.backend.github.branch || "main";
+        document.getElementById("gh-token").value = state.backend.github.token || "";
+        document.getElementById("gh-remember").checked = Boolean(state.backend.github.remember);
+
+        document.getElementById("wk-url").value = state.backend.worker.url || "";
+        document.getElementById("wk-token").value = state.backend.worker.token || "";
+        document.getElementById("wk-remember").checked = Boolean(state.backend.worker.remember);
+
+        selectBackendTab(state.backend.mode);
+      }
+
+      function selectBackendTab(mode) {
+        document.querySelectorAll("#backend-mode-tabs .nav-tab").forEach((b) => {
+          b.classList.toggle("active", b.getAttribute("data-bmode") === mode);
+        });
+        document.querySelectorAll(".backend-pane").forEach((p) => {
+          p.style.display = p.id === `bpane-${mode}` ? "block" : "none";
+        });
+      }
+
+      // ---------------------------------------------------------------------
+      // Event Wiring
+      // ---------------------------------------------------------------------
+      function initEvents() {
+        // Primary view tabs
+        document.querySelectorAll(".nav-tab[data-view]").forEach((btn) => {
+          btn.addEventListener("click", () => switchView(btn.getAttribute("data-view")));
+        });
+
+        // Theme toggle
+        const savedTheme = localStorage.getItem(LS_THEME_KEY) || "light";
+        if (savedTheme === "dark") document.documentElement.setAttribute("data-theme", "dark");
+        document.getElementById("btn-theme").addEventListener("click", () => {
+          const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+          document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+          localStorage.setItem(LS_THEME_KEY, isDark ? "light" : "dark");
+        });
+
+        // Search & Namespace chips
+        document.getElementById("search-input").addEventListener("input", (e) => {
+          state.filters.q = e.target.value;
+          renderRecordList();
+        });
+        document.querySelectorAll("#namespace-chips .chip").forEach((chip) => {
+          chip.addEventListener("click", () => {
+            document.querySelectorAll("#namespace-chips .chip").forEach((c) => c.classList.remove("active"));
+            chip.classList.add("active");
+            state.filters.namespace = chip.getAttribute("data-ns");
+            renderRecordList();
+          });
+        });
+
+        // Bitemporal controls
+        const asOfInput = document.getElementById("as-of-input");
+        asOfInput.value = toDatetimeLocalValue(state.filters.asOfIso);
+        asOfInput.addEventListener("change", () => {
+          const iso = fromDatetimeLocalUtc(asOfInput.value);
+          if (iso) {
+            state.filters.asOfIso = iso;
+            renderRecordList();
+          }
+        });
+        document.getElementById("btn-time-now").addEventListener("click", () => {
+          state.filters.asOfIso = new Date().toISOString();
+          asOfInput.value = toDatetimeLocalValue(state.filters.asOfIso);
+          renderRecordList();
+        });
+        document.getElementById("btn-time-past").addEventListener("click", () => {
+          state.filters.asOfIso = new Date(Date.now() - 180 * 86400000).toISOString();
+          asOfInput.value = toDatetimeLocalValue(state.filters.asOfIso);
+          renderRecordList();
+          toast("Time-traveled 6 months back — showing historically valid versions.");
+        });
+        document.getElementById("toggle-superseded").addEventListener("change", (e) => {
+          state.filters.includeSuperseded = e.target.checked;
+          renderRecordList();
+        });
+        document.getElementById("toggle-expired").addEventListener("change", (e) => {
+          state.filters.includeExpired = e.target.checked;
+          renderRecordList();
+        });
+
+        // Reset seed
+        const doResetSeed = () => {
+          if (!confirm("Reset local records back to the default sample dataset?")) return;
+          state.records = buildSeedRecords();
+          saveLocalRecords(state.records);
+          state.selectedId = null;
+          renderAll();
+          toast("Sample memories restored.");
+        };
+        document.getElementById("btn-reset-seed").addEventListener("click", doResetSeed);
+        document.getElementById("btn-modal-reset-seed").addEventListener("click", doResetSeed);
+
+        // Topbar buttons
+        document.getElementById("btn-new-memory").addEventListener("click", () => openEditor("create"));
+        document.getElementById("btn-backend").addEventListener("click", () => {
+          syncBackendModalInputs();
+          openModal("modal-backend");
+        });
+        document.getElementById("btn-export").addEventListener("click", () => {
+          refreshExportPreviews();
+          openModal("modal-export");
+        });
+
+        // Quickstart action buttons
+        document.getElementById("qs-btn-timetravel").addEventListener("click", () => {
+          switchView("console");
+          document.getElementById("btn-time-past").click();
+        });
+        document.getElementById("qs-btn-export").addEventListener("click", () => {
+          refreshExportPreviews();
+          openModal("modal-export");
+        });
+        document.getElementById("qs-btn-backend").addEventListener("click", () => {
+          syncBackendModalInputs();
+          openModal("modal-backend");
+        });
+
+        // Modal close buttons & backdrop click
+        document.querySelectorAll("[data-close]").forEach((btn) => {
+          btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close")));
+        });
+        document.querySelectorAll(".modal-backdrop").forEach((bd) => {
+          bd.addEventListener("click", (e) => {
+            if (e.target === bd) bd.classList.remove("open");
+          });
+        });
+
+        // Editor namespace shortcuts & live route preview
+        document.querySelectorAll("[data-ns-prefix]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const nsEl = document.getElementById("f-namespace");
+            if (nsEl.readOnly) return;
+            const prefix = btn.getAttribute("data-ns-prefix");
+            const stripped = nsEl.value.replace(/^(public|shared|private)\//, "");
+            nsEl.value = prefix + (stripped || "general");
+            updateRoutePreview();
+          });
+        });
+        document.getElementById("f-namespace").addEventListener("input", updateRoutePreview);
+        document.getElementById("f-key").addEventListener("input", updateRoutePreview);
+        document.getElementById("btn-add-citation").addEventListener("click", () => addCitationRow());
+
+        // Editor submit
+        document.getElementById("memory-form").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const errBox = document.getElementById("editor-errors");
+          errBox.style.display = "none";
+
+          const citations = [];
+          document.querySelectorAll("#citations-container .citation-editor-row").forEach((row) => {
+            const uri = row.querySelector(".cit-uri").value.trim();
+            const label = row.querySelector(".cit-label").value.trim();
+            const excerpt = row.querySelector(".cit-excerpt").value.trim();
+            if (uri) {
+              const c = { uri };
+              if (label) c.label = label;
+              if (excerpt) c.excerpt = excerpt;
+              citations.push(c);
+            }
+          });
+
+          const nowIso = new Date().toISOString();
+          const rec = {
+            schema: RECORD_SCHEMA,
+            id: generateId(),
+            namespace: document.getElementById("f-namespace").value.trim(),
+            key: document.getElementById("f-key").value.trim(),
+            title: document.getElementById("f-title").value.trim(),
+            content: document.getElementById("f-content").value.trim(),
+            kind: document.getElementById("f-kind").value,
+            tags: document
+              .getElementById("f-tags")
+              .value.split(",")
+              .map((t) => t.trim().toLowerCase())
+              .filter(Boolean),
+            confidence: Number(document.getElementById("f-confidence").value),
+            valid_from: fromDatetimeLocalUtc(document.getElementById("f-valid-from").value) || nowIso,
+            valid_to: fromDatetimeLocalUtc(document.getElementById("f-valid-to").value),
+            recorded_at: nowIso,
+            expires_at: fromDatetimeLocalUtc(document.getElementById("f-expires-at").value),
+            version: 1,
+            supersedes: null,
+            superseded_by: null,
+            provenance: {
+              actor: document.getElementById("f-actor").value.trim(),
+              source: document.getElementById("f-source").value.trim(),
+              method: document.getElementById("f-method").value,
+              trust: document.getElementById("f-trust").value,
+              session_id: null,
+            },
+            citations,
+          };
+
+          const errors = validateRecord(rec);
+          if (errors.length > 0) {
+            errBox.innerHTML = errors.map((m) => `<div>• ${escapeHtml(m)}</div>`).join("");
+            errBox.style.display = "block";
+            return;
+          }
+
+          const saveBtn = document.getElementById("btn-save-memory");
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Saving...";
+          try {
+            const closePrev = document.getElementById("f-close-prev").checked;
+            const saved = await persistRecord(rec, closePrev);
+            state.selectedId = saved.id;
+            closeModal("modal-editor");
+            renderAll();
+            toast(`Saved oam://${saved.namespace}/${saved.key} (v${saved.version}).`);
+          } catch (err) {
+            errBox.textContent = err.message;
+            errBox.style.display = "block";
+          } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Record";
+          }
+        });
+
+        // Backend modal tabs & actions
+        document.querySelectorAll("#backend-mode-tabs .nav-tab").forEach((btn) => {
+          btn.addEventListener("click", () => selectBackendTab(btn.getAttribute("data-bmode")));
+        });
+
+        document.getElementById("btn-use-local").addEventListener("click", () => {
+          state.backend.mode = "local";
+          saveBackendConfig();
+          closeModal("modal-backend");
+          toast("Switched to Local Browser (localStorage) backend.");
+        });
+
+        // GitHub backend buttons
+        const readGhInputs = () => ({
+          repo: document.getElementById("gh-repo").value.trim(),
+          branch: document.getElementById("gh-branch").value.trim() || "main",
+          token: document.getElementById("gh-token").value.trim(),
+          remember: document.getElementById("gh-remember").checked,
+        });
+
+        document.getElementById("btn-gh-test").addEventListener("click", async () => {
+          const { repo, token } = readGhInputs();
+          const status = document.getElementById("gh-status");
+          if (!repo || !token) {
+            status.innerHTML = `<div class="callout callout-danger">Enter both repository (owner/repo) and PAT.</div>`;
+            return;
+          }
+          status.innerHTML = `<div class="callout">Testing GitHub API access...</div>`;
+          try {
+            const res = await fetch(`https://api.github.com/repos/${repo}`, { headers: ghHeaders(token) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+            status.innerHTML = `<div class="callout callout-accent">Connected to <strong>${escapeHtml(data.full_name)}</strong> (${data.private ? "Private" : "Public"} repo, default branch: <code>${escapeHtml(data.default_branch)}</code>).</div>`;
+          } catch (err) {
+            status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          }
+        });
+
+        document.getElementById("btn-gh-pull").addEventListener("click", async () => {
+          const { repo, branch, token } = readGhInputs();
+          const status = document.getElementById("gh-status");
+          try {
+            const recs = await ghPullAll(repo, branch, token);
+            state.records = recs;
+            saveLocalRecords(recs);
+            state.selectedId = null;
+            renderAll();
+            status.innerHTML = `<div class="callout callout-accent">Pulled <strong>${recs.length}</strong> records from <code>${escapeHtml(repo)}</code>.</div>`;
+          } catch (err) {
+            status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          }
+        });
+
+        document.getElementById("btn-gh-push").addEventListener("click", async () => {
+          const { repo, branch, token } = readGhInputs();
+          const status = document.getElementById("gh-status");
+          status.innerHTML = `<div class="callout">Pushing ${state.records.length} records to ${escapeHtml(repo)}...</div>`;
+          try {
+            await ghPushAllRecords(repo, branch, token, state.records);
+            status.innerHTML = `<div class="callout callout-accent">Successfully pushed all <strong>${state.records.length}</strong> records to <code>memories/</code>.</div>`;
+          } catch (err) {
+            status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          }
+        });
+
+        document.getElementById("btn-use-github").addEventListener("click", () => {
+          const cfg = readGhInputs();
+          if (!cfg.repo || !cfg.token) {
+            document.getElementById("gh-status").innerHTML = `<div class="callout callout-danger">Repository and PAT are required.</div>`;
+            return;
+          }
+          state.backend.mode = "github";
+          state.backend.github = cfg;
+          saveBackendConfig();
+          closeModal("modal-backend");
+          toast(`Activated Private GitHub Repo backend (${cfg.repo}).`);
+        });
+
+        // Worker backend buttons
+        const readWkInputs = () => ({
+          url: document.getElementById("wk-url").value.trim().replace(/\/+$/, ""),
+          token: document.getElementById("wk-token").value.trim(),
+          remember: document.getElementById("wk-remember").checked,
+        });
+
+        document.getElementById("btn-wk-test").addEventListener("click", async () => {
+          const { url } = readWkInputs();
+          const status = document.getElementById("wk-status");
+          if (!url) {
+            status.innerHTML = `<div class="callout callout-danger">Enter your Cloudflare Worker URL.</div>`;
+            return;
+          }
+          status.innerHTML = `<div class="callout">Checking ${escapeHtml(url)}/health...</div>`;
+          try {
+            const res = await fetch(`${url}/health`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            status.innerHTML = `<div class="callout callout-accent">Healthy (${escapeHtml(data.schema)}). Gist: <strong>${data.backends?.gist ? "on" : "off"}</strong> · Private Repo: <strong>${data.backends?.repo ? "on" : "off"}</strong> · Auth: <strong>${data.auth_enabled ? "enabled" : "open"}</strong>.</div>`;
+          } catch (err) {
+            status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          }
+        });
+
+        document.getElementById("btn-wk-pull").addEventListener("click", async () => {
+          const { url, token } = readWkInputs();
+          const status = document.getElementById("wk-status");
+          try {
+            const recs = await workerFetchRecords(url, token);
+            state.records = recs;
+            saveLocalRecords(recs);
+            state.selectedId = null;
+            renderAll();
+            status.innerHTML = `<div class="callout callout-accent">Synced <strong>${recs.length}</strong> records from Worker.</div>`;
+          } catch (err) {
+            status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          }
+        });
+
+        document.getElementById("btn-use-worker").addEventListener("click", () => {
+          const cfg = readWkInputs();
+          if (!cfg.url) {
+            document.getElementById("wk-status").innerHTML = `<div class="callout callout-danger">Worker URL is required.</div>`;
+            return;
+          }
+          state.backend.mode = "worker";
+          state.backend.worker = cfg;
+          saveBackendConfig();
+          closeModal("modal-backend");
+          toast("Activated Cloudflare Worker backend.");
+        });
+
+        // Header quick Sync button for remote backends
+        document.getElementById("btn-sync-backend").addEventListener("click", async () => {
+          try {
+            if (state.backend.mode === "github") {
+              const { repo, branch, token } = state.backend.github;
+              const recs = await ghPullAll(repo, branch, token);
+              state.records = recs;
+              saveLocalRecords(recs);
+              renderAll();
+              toast(`Synced ${recs.length} records from ${repo}.`);
+            } else if (state.backend.mode === "worker") {
+              const { url, token } = state.backend.worker;
+              const recs = await workerFetchRecords(url, token);
+              state.records = recs;
+              saveLocalRecords(recs);
+              renderAll();
+              toast(`Synced ${recs.length} records from Cloudflare Worker.`);
+            }
+          } catch (err) {
+            toast(`Sync failed: ${err.message}`, true);
+          }
+        });
+
+        // Export / Import modal
+        document.querySelectorAll("#export-mode-tabs .nav-tab").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const mode = btn.getAttribute("data-emode");
+            document.querySelectorAll("#export-mode-tabs .nav-tab").forEach((b) => b.classList.toggle("active", b === btn));
+            document.querySelectorAll(".export-pane").forEach((p) => {
+              p.style.display = p.id === `epane-${mode}` ? "block" : "none";
+            });
+            refreshExportPreviews();
+          });
+        });
+
+        document.getElementById("exp-agents-ns").addEventListener("change", refreshExportPreviews);
+        document.getElementById("exp-agents-citations").addEventListener("change", refreshExportPreviews);
+        document.getElementById("exp-json-all").addEventListener("change", refreshExportPreviews);
+
+        document.getElementById("btn-dl-agents").addEventListener("click", () => {
+          downloadFile("AGENTS.md", document.getElementById("exp-agents-preview").value, "text/markdown;charset=utf-8");
+          toast("Downloaded AGENTS.md");
+        });
+        document.getElementById("btn-copy-agents").addEventListener("click", () => {
+          copyText(document.getElementById("exp-agents-preview").value, "Copied AGENTS.md to clipboard");
+        });
+        document.getElementById("btn-dl-json").addEventListener("click", () => {
+          downloadFile("oam-bundle.json", document.getElementById("exp-json-preview").value, "application/json;charset=utf-8");
+          toast("Downloaded oam-bundle.json");
+        });
+        document.getElementById("btn-copy-json").addEventListener("click", () => {
+          copyText(document.getElementById("exp-json-preview").value, "Copied JSON bundle to clipboard");
+        });
+
+        document.getElementById("imp-file").addEventListener("change", async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          document.getElementById("imp-text").value = await file.text();
+        });
+
+        const handleImport = (replaceMode) => {
+          const status = document.getElementById("imp-status");
+          let parsed;
+          try {
+            parsed = JSON.parse(document.getElementById("imp-text").value);
+          } catch {
+            status.innerHTML = `<div class="callout callout-danger">Invalid JSON syntax.</div>`;
+            return;
+          }
+          const incoming = Array.isArray(parsed)
+            ? parsed
+            : Array.isArray(parsed.records)
+            ? parsed.records
+            : [parsed];
+
+          const invalid = [];
+          incoming.forEach((r, idx) => {
+            const errs = validateRecord(r);
+            if (errs.length > 0) invalid.push(`Record #${idx + 1}: ${errs.join(" ")}`);
+          });
+          if (invalid.length > 0) {
+            status.innerHTML = `<div class="callout callout-danger">${invalid.slice(0, 5).map(escapeHtml).join("<br/>")}</div>`;
+            return;
+          }
+
+          if (replaceMode) {
+            state.records = incoming;
+          } else {
+            const byId = new Map(state.records.map((r) => [r.id, r]));
+            for (const r of incoming) byId.set(r.id, r);
+            state.records = Array.from(byId.values());
+          }
+          saveLocalRecords(state.records);
+          state.selectedId = null;
+          renderAll();
+          status.innerHTML = `<div class="callout callout-accent">Imported <strong>${incoming.length}</strong> valid <code>oam.record.v1</code> record(s).</div>`;
+          toast(`Imported ${incoming.length} record(s).`);
+        };
+        document.getElementById("btn-imp-merge").addEventListener("click", () => handleImport(false));
+        document.getElementById("btn-imp-replace").addEventListener("click", () => handleImport(true));
+
+        // Spec interactive validator
+        const valInput = document.getElementById("validator-input");
+        const loadSelectedToValidator = () => {
+          const rec = state.records.find((r) => r.id === state.selectedId) || state.records[0];
+          if (rec) valInput.value = JSON.stringify(rec, null, 2);
+        };
+        document.getElementById("btn-load-sample-validator").addEventListener("click", loadSelectedToValidator);
+        document.getElementById("btn-run-validator").addEventListener("click", () => {
+          const out = document.getElementById("validator-output");
+          let obj;
+          try {
+            obj = JSON.parse(valInput.value);
+          } catch (err) {
+            out.innerHTML = `<div class="callout callout-danger">JSON Parse Error: ${escapeHtml(err.message)}</div>`;
+            return;
+          }
+          const errors = validateRecord(obj);
+          if (errors.length === 0) {
+            const route = routeNamespace(obj.namespace);
+            out.innerHTML = `<div class="callout callout-accent"><strong>Valid oam.record.v1!</strong> Canonical URI: <code>oam://${escapeHtml(obj.namespace)}/${escapeHtml(obj.key)}</code> · Route: <strong>${route === "gist" ? "GitHub Gist" : "Private GitHub Repo (fail-closed)"}</strong>.</div>`;
+          } else {
+            out.innerHTML = `<div class="callout callout-danger"><strong>Validation failed (${errors.length}):</strong><br/>${errors.map((m) => `• ${escapeHtml(m)}`).join("<br/>")}</div>`;
+          }
+        });
+        loadSelectedToValidator();
+      }
+
+      // ---------------------------------------------------------------------
+      // Boot
+      // ---------------------------------------------------------------------
+      loadBackendConfig();
+      state.records = loadLocalRecords();
+      initEvents();
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
