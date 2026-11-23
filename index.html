@@ -799,9 +799,96 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Collapsible Open-Source & Adapters Panel */
+    .oss-panel {
+      margin-top: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .oss-summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 18px;
+      background: var(--surface-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .oss-summary::-webkit-details-marker { display: none; }
+    .oss-summary:hover { background: var(--surface-hover); }
+    .oss-summary-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 14.5px;
+      letter-spacing: -0.01em;
+    }
+    .oss-chevron {
+      display: inline-block;
+      transition: transform 0.18s ease;
+      color: var(--ink-faint);
+      font-size: 12px;
+    }
+    .oss-panel[open] .oss-chevron { transform: rotate(90deg); }
+    .oss-body {
+      padding: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .oss-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 860px) {
+      .oss-grid { grid-template-columns: 1fr; }
+    }
+    .oss-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .oss-card h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .oss-card p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--ink-muted);
+    }
+    .oss-links {
+      list-style: none;
+      margin: 4px 0 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .oss-links a {
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
     .footer {
       max-width: 1320px;
-      margin: 26px auto 0 auto;
+      margin: 22px auto 0 auto;
       padding: 18px 20px 32px 20px;
       border-top: 1px solid var(--border);
       display: flex;
@@ -1086,6 +1173,63 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         </div>
       </div>
     </section>
+
+    <!-- COLLAPSIBLE OPEN-SOURCE & ADAPTERS SECTION -->
+    <details class="oss-panel" id="oss-adapters-section" open>
+      <summary class="oss-summary">
+        <span class="oss-summary-title">
+          <span class="oss-chevron" aria-hidden="true">&#9654;</span>
+          <span>Open-Source &amp; Adapters</span>
+          <span class="badge badge-tag">Zero-Cost · Zero-Build · MIT</span>
+        </span>
+        <span style="font-size:12.5px; color:var(--ink-faint);">
+          Extend <code>oam.record.v1</code> with Cloudflare D1, KV, local SQLite/JSON, or CLI sync scripts
+        </span>
+      </summary>
+      <div class="oss-body">
+        <div class="oss-grid">
+          <div class="oss-card">
+            <h3>Specification &amp; Routing</h3>
+            <p>
+              Portable bitemporal schema with fail-closed privacy boundaries: <code>public/*</code> &amp;
+              <code>shared/*</code> to Gist; <code>private/*</code> and unknown namespaces strictly to private storage
+              (never secret Gists).
+            </p>
+            <ul class="oss-links">
+              <li><a href="https://github.com/iggym/OpenAgentMemory/blob/main/SPEC.md" data-repo-path="/blob/main/SPEC.md" target="_blank" rel="noopener noreferrer">Read SPEC.md (oam.record.v1) →</a></li>
+              <li><a href="https://github.com/iggym/OpenAgentMemory/blob/main/worker.js" data-repo-path="/blob/main/worker.js" target="_blank" rel="noopener noreferrer">Reference Cloudflare Worker (worker.js) →</a></li>
+              <li><a href="https://github.com/iggym/OpenAgentMemory/issues/new?template=schema-proposal.md" data-repo-path="/issues/new?template=schema-proposal.md" target="_blank" rel="noopener noreferrer">Propose an optional schema field →</a></li>
+            </ul>
+          </div>
+
+          <div class="oss-card">
+            <h3>Examples &amp; Agent Sync</h3>
+            <p>
+              Drop-in JSON dataset and a zero-dependency Node.js script that reads local <code>memories.json</code>
+              or fetches a Worker endpoint to keep <code>AGENTS.md</code> synced automatically.
+            </p>
+            <ul class="oss-links">
+              <li><a href="https://github.com/iggym/OpenAgentMemory/blob/main/examples/sample-memories.json" data-repo-path="/blob/main/examples/sample-memories.json" target="_blank" rel="noopener noreferrer">examples/sample-memories.json →</a></li>
+              <li><a href="https://github.com/iggym/OpenAgentMemory/blob/main/examples/sync-agents-md.mjs" data-repo-path="/blob/main/examples/sync-agents-md.mjs" target="_blank" rel="noopener noreferrer">examples/sync-agents-md.mjs →</a></li>
+              <li><a href="https://github.com/iggym/OpenAgentMemory/blob/main/README.md" data-repo-path="/blob/main/README.md" target="_blank" rel="noopener noreferrer">Setup &amp; GitHub Pages Guide (README.md) →</a></li>
+            </ul>
+          </div>
+
+          <div class="oss-card">
+            <h3>Contribute Storage Adapters</h3>
+            <p>
+              Build zero-cost adapters for <strong>Cloudflare D1</strong>, <strong>Cloudflare KV</strong>, or
+              <strong>local SQLite / JSON</strong> while keeping <code>index.html</code> single-file and dependency-free.
+            </p>
+            <ul class="oss-links">
+              <li><a href="https://github.com/iggym/OpenAgentMemory/blob/main/CONTRIBUTING.md" data-repo-path="/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Read CONTRIBUTING.md →</a></li>
+              <li><a href="https://github.com/iggym/OpenAgentMemory/issues/new?template=new-adapter.md" data-repo-path="/issues/new?template=new-adapter.md" target="_blank" rel="noopener noreferrer">Propose a new storage adapter →</a></li>
+              <li><a href="https://github.com/iggym/OpenAgentMemory" data-repo-path="" target="_blank" rel="noopener noreferrer">View GitHub Repository →</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
   </main>
 
   <footer class="footer">
@@ -3257,12 +3401,26 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         loadSelectedToValidator();
       }
 
+      function hydrateRepoLinks() {
+        const host = window.location.hostname || "";
+        const match = host.match(/^([a-z0-9-]+)\.github\.io$/i);
+        if (!match) return;
+        const owner = match[1];
+        const firstSeg = (window.location.pathname || "/").split("/").filter(Boolean)[0];
+        if (!firstSeg) return;
+        const base = `https://github.com/${owner}/${firstSeg}`;
+        document.querySelectorAll("a[data-repo-path]").forEach((a) => {
+          a.href = base + a.getAttribute("data-repo-path");
+        });
+      }
+
       // ---------------------------------------------------------------------
       // Boot
       // ---------------------------------------------------------------------
       loadBackendConfig();
       state.records = loadLocalRecords();
       initEvents();
+      hydrateRepoLinks();
       renderAll();
     })();
   </script>

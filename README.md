@@ -16,6 +16,10 @@
 | [`SPEC.md`](./SPEC.md) | Complete `oam.record.v1` specification (addressing, bitemporal queries, supersession, routing, storage layout, exports, HTTP API). |
 | [`index.html`](./index.html) | Single-file web application for GitHub Pages: embedded spec overview, 3-minute quickstart, live memory console, time-travel queries, Private GitHub Repo & Cloudflare Worker backends, `AGENTS.md` + JSON exports. |
 | [`worker.js`](./worker.js) | Reference zero-dependency Cloudflare Worker routing `public/*` & `shared/*` to a GitHub Gist and `private/*` (fail-closed default) to a Private GitHub Repository. |
+| [`examples/sample-memories.json`](./examples/sample-memories.json) | Sample `oam.bundle.v1` dataset covering `public/*`, `shared/*`, `private/*`, supersession chains, and TTL expiration. |
+| [`examples/sync-agents-md.mjs`](./examples/sync-agents-md.mjs) | Zero-dependency Node.js script that reads local `memories.json` or fetches a remote endpoint and updates the `<!-- OAM:START -->` block in `AGENTS.md`. |
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Zero-cost / zero-build philosophy, namespace privacy rules, and adapter contribution guidelines. |
+| [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/) | Templates for proposing new storage adapters (`new-adapter.md`) and optional `oam.record.v1` fields (`schema-proposal.md`). |
 | [`LICENSE`](./LICENSE) | MIT License. |
 
 ---

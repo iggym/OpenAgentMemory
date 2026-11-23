@@ -1,0 +1,207 @@
+{
+  "schema": "oam.bundle.v1",
+  "record_schema": "oam.record.v1",
+  "exported_at": "2026-11-22T18:00:00.000Z",
+  "count": 7,
+  "records": [
+    {
+      "schema": "oam.record.v1",
+      "id": "oam_20260115_arch0001",
+      "namespace": "public/architecture",
+      "key": "zero-build-ui",
+      "title": "Keep index.html single-file, zero-build, and dependency-free",
+      "content": "The OpenAgentMemory web console lives in a single vanilla HTML/CSS/JavaScript file (index.html) with zero npm packages, bundlers, or frameworks so it deploys straight from the repository root on GitHub Pages or runs offline via file://.",
+      "kind": "decision",
+      "tags": ["architecture", "zero-deps", "github-pages"],
+      "confidence": 1.0,
+      "valid_from": "2026-01-15T00:00:00.000Z",
+      "valid_to": null,
+      "recorded_at": "2026-01-15T12:00:00.000Z",
+      "expires_at": null,
+      "version": 1,
+      "supersedes": null,
+      "superseded_by": null,
+      "provenance": {
+        "actor": "user:maintainer",
+        "source": "adr",
+        "method": "explicit",
+        "trust": "verified",
+        "session_id": "adr-001"
+      },
+      "citations": [
+        {
+          "uri": "https://github.com/iggym/OpenAgentMemory/blob/main/SPEC.md",
+          "label": "OAM Specification (oam.record.v1)",
+          "excerpt": "Zero paid dependencies, zero build tools, plain JSON and Markdown."
+        }
+      ]
+    },
+    {
+      "schema": "oam.record.v1",
+      "id": "oam_20260210_adap0001",
+      "namespace": "public/conventions",
+      "key": "adapter-routing",
+      "title": "Route unknown namespaces to GitHub Gist by default",
+      "content": "Early draft routed unrecognized namespaces to a secret GitHub Gist. Superseded because secret Gists are unlisted rather than access-controlled.",
+      "kind": "constraint",
+      "tags": ["security", "routing", "history"],
+      "confidence": 1.0,
+      "valid_from": "2026-02-10T00:00:00.000Z",
+      "valid_to": "2026-03-01T00:00:00.000Z",
+      "recorded_at": "2026-02-10T09:00:00.000Z",
+      "expires_at": null,
+      "version": 1,
+      "supersedes": null,
+      "superseded_by": "oam_20260301_adap0002",
+      "provenance": {
+        "actor": "user:maintainer",
+        "source": "adr",
+        "method": "explicit",
+        "trust": "verified",
+        "session_id": "adr-002"
+      },
+      "citations": []
+    },
+    {
+      "schema": "oam.record.v1",
+      "id": "oam_20260301_adap0002",
+      "namespace": "public/conventions",
+      "key": "adapter-routing",
+      "title": "Fail-closed namespace routing: never put private data in secret Gists",
+      "content": "Only explicit public/* and shared/* namespaces may route to a GitHub Gist. All private/* namespaces and any unrecognized namespace MUST fail closed to private authenticated storage (such as a private GitHub repository, local SQLite/JSON, or private Cloudflare D1/KV).",
+      "kind": "constraint",
+      "tags": ["security", "routing", "adapters"],
+      "confidence": 1.0,
+      "valid_from": "2026-03-01T00:00:00.000Z",
+      "valid_to": null,
+      "recorded_at": "2026-03-01T10:30:00.000Z",
+      "expires_at": null,
+      "version": 2,
+      "supersedes": "oam_20260210_adap0001",
+      "superseded_by": null,
+      "provenance": {
+        "actor": "user:maintainer",
+        "source": "adr",
+        "method": "explicit",
+        "trust": "verified",
+        "session_id": "adr-003"
+      },
+      "citations": [
+        {
+          "uri": "https://github.com/iggym/OpenAgentMemory/blob/main/CONTRIBUTING.md",
+          "label": "OpenAgentMemory Contributing Guide",
+          "excerpt": "GitHub secret Gists are unlisted, not private; never route private/* data to a Gist."
+        }
+      ]
+    },
+    {
+      "schema": "oam.record.v1",
+      "id": "oam_20260615_team0001",
+      "namespace": "shared/team",
+      "key": "pr-verification",
+      "title": "Run syntax and validator checks before opening a PR",
+      "content": "Before opening a pull request, run `node --check worker.js` and `node --check examples/sync-agents-md.mjs`, and validate sample JSON records against oam.record.v1.",
+      "kind": "procedure",
+      "tags": ["ci", "testing", "contributing"],
+      "confidence": 1.0,
+      "valid_from": "2026-06-15T00:00:00.000Z",
+      "valid_to": null,
+      "recorded_at": "2026-06-15T14:00:00.000Z",
+      "expires_at": null,
+      "version": 1,
+      "supersedes": null,
+      "superseded_by": null,
+      "provenance": {
+        "actor": "user:maintainer",
+        "source": "manual",
+        "method": "explicit",
+        "trust": "verified",
+        "session_id": null
+      },
+      "citations": []
+    },
+    {
+      "schema": "oam.record.v1",
+      "id": "oam_20260801_priv0001",
+      "namespace": "private/preferences",
+      "key": "coding-agent-style",
+      "title": "Favor small focused diffs and explicit error handling",
+      "content": "When assisting in this workspace, keep diffs minimal, avoid adding external packages when native runtime APIs suffice, and fail fast with clear error messages when required configuration is missing.",
+      "kind": "preference",
+      "tags": ["workflow", "style"],
+      "confidence": 1.0,
+      "valid_from": "2026-08-01T00:00:00.000Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-01T08:00:00.000Z",
+      "expires_at": null,
+      "version": 1,
+      "supersedes": null,
+      "superseded_by": null,
+      "provenance": {
+        "actor": "user:local",
+        "source": "manual",
+        "method": "explicit",
+        "trust": "verified",
+        "session_id": null
+      },
+      "citations": []
+    },
+    {
+      "schema": "oam.record.v1",
+      "id": "oam_20260901_exp0001",
+      "namespace": "private/context",
+      "key": "september-freeze",
+      "title": "Temporary September release freeze (expired example)",
+      "content": "Hold non-critical merges during the September maintenance window. This record intentionally has an elapsed expires_at timestamp to demonstrate automatic exclusion from active AGENTS.md exports.",
+      "kind": "context",
+      "tags": ["temporary", "ttl"],
+      "confidence": 1.0,
+      "valid_from": "2026-09-01T00:00:00.000Z",
+      "valid_to": null,
+      "recorded_at": "2026-09-01T08:00:00.000Z",
+      "expires_at": "2026-09-15T00:00:00.000Z",
+      "version": 1,
+      "supersedes": null,
+      "superseded_by": null,
+      "provenance": {
+        "actor": "user:local",
+        "source": "conversation",
+        "method": "explicit",
+        "trust": "verified",
+        "session_id": null
+      },
+      "citations": []
+    },
+    {
+      "schema": "oam.record.v1",
+      "id": "oam_20261120_ttl0001",
+      "namespace": "private/context",
+      "key": "active-roadmap-focus",
+      "title": "Prioritize zero-cost reference adapters (D1, KV, local SQLite)",
+      "content": "Current contributor milestone focuses on reference storage adapters that work on free tiers or locally without credit cards while preserving full oam.record.v1 bitemporal semantics.",
+      "kind": "context",
+      "tags": ["roadmap", "adapters"],
+      "confidence": 0.95,
+      "valid_from": "2026-11-20T00:00:00.000Z",
+      "valid_to": null,
+      "recorded_at": "2026-11-20T16:00:00.000Z",
+      "expires_at": "2027-06-01T00:00:00.000Z",
+      "version": 1,
+      "supersedes": null,
+      "superseded_by": null,
+      "provenance": {
+        "actor": "user:maintainer",
+        "source": "manual",
+        "method": "explicit",
+        "trust": "verified",
+        "session_id": null
+      },
+      "citations": [
+        {
+          "uri": "oam://public/conventions/adapter-routing",
+          "label": "Fail-Closed Adapter Routing Constraint"
+        }
+      ]
+    }
+  ]
+}
