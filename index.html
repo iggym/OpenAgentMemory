@@ -846,6 +846,126 @@
       flex-wrap: wrap;
     }
 
+    /* Live Context-Budget & Bloat Meter */
+    .budget-meter {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .budget-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+    .budget-stats {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      color: var(--ink-muted);
+    }
+    .budget-stats strong { color: var(--ink); font-weight: 600; }
+    .budget-bar-track {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .budget-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.2s ease, background-color 0.2s ease;
+    }
+    .budget-bar-fill.healthy { background: var(--accent); }
+    .budget-bar-fill.warning { background: var(--amber); }
+    .budget-bar-fill.over { background: var(--danger); }
+    .budget-note {
+      font-size: 12px;
+      color: var(--ink-faint);
+    }
+    .budget-note.warning { color: var(--amber); font-weight: 500; }
+    .budget-note.over { color: var(--danger); font-weight: 600; }
+
+    /* Multi-Agent Compiler Panel */
+    .compiler-panel {
+      margin-top: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .compiler-controls {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .compiler-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      background: var(--bg);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .compiler-tab {
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .compiler-tab:hover { color: var(--ink); background: var(--surface-hover); }
+    .compiler-tab.active {
+      background: var(--surface);
+      color: var(--ink);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+    .compiler-options {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: var(--ink-muted);
+    }
+    .compiler-options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .compiler-preview-wrap {
+      padding: 14px 16px 16px 16px;
+    }
+    pre.compiler-preview {
+      margin: 0;
+      max-height: 400px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     /* Collapsible Open-Source & Adapters Panel */
     .oss-panel {
       margin-top: 24px;
@@ -1062,6 +1182,8 @@
             </div>
           </div>
 
+          <div class="budget-meter" id="budget-meter-list" aria-live="polite"></div>
+
           <div class="record-list" id="record-list" role="listbox" aria-label="Memory records"></div>
         </div>
 
@@ -1076,6 +1198,56 @@
           </div>
         </div>
       </div>
+
+      <!-- MULTI-AGENT COMPILER PANEL -->
+      <section class="compiler-panel" id="multi-agent-compiler" aria-label="Multi-Agent Compiler">
+        <div class="panel-header">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <h2 class="panel-title">Multi-Agent Compiler</h2>
+            <span class="badge badge-tag mono" id="mac-ns-badge">namespace: all</span>
+            <span class="badge badge-active mono" id="mac-target-path">AGENTS.md</span>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" id="btn-mac-copy">Copy to Clipboard</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btn-mac-download">Download File</button>
+          </div>
+        </div>
+
+        <div class="compiler-controls">
+          <div class="compiler-tabs" id="mac-format-tabs" role="tablist" aria-label="Target agent format">
+            <button type="button" class="compiler-tab active" role="tab" aria-selected="true" data-target="agents">AGENTS.md</button>
+            <button type="button" class="compiler-tab" role="tab" aria-selected="false" data-target="claude">CLAUDE.md</button>
+            <button type="button" class="compiler-tab" role="tab" aria-selected="false" data-target="cursor">.cursor/rules/oam-memory.mdc</button>
+            <button type="button" class="compiler-tab" role="tab" aria-selected="false" data-target="gemini">GEMINI.md</button>
+            <button type="button" class="compiler-tab" role="tab" aria-selected="false" data-target="copilot">.github/copilot-instructions.md</button>
+          </div>
+
+          <div class="compiler-options">
+            <label id="mac-group-wrap">
+              Group:
+              <select class="select" id="mac-group-by" style="width:auto; padding:4px 8px; font-size:12px;">
+                <option value="tag">By Tag</option>
+                <option value="prefix">By Key Prefix</option>
+                <option value="namespace">By Namespace</option>
+              </select>
+            </label>
+            <label id="mac-claude-opt-wrap" style="display:none;">
+              <input type="checkbox" id="mac-claude-include-agents" />
+              <span>Include <code>@AGENTS.md</code> header</span>
+            </label>
+            <label>
+              <input type="checkbox" id="mac-include-citations" checked />
+              <span>Citations</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="budget-meter" id="budget-meter-compiler" aria-live="polite"></div>
+
+        <div class="compiler-preview-wrap">
+          <pre class="code-block compiler-preview" id="mac-preview"></pre>
+        </div>
+      </section>
     </section>
 
     <!-- VIEW 2: 3-MINUTE QUICKSTART -->
@@ -1086,7 +1258,8 @@
           <p>
             No account creation, no API keys, and no build tools are needed to begin. This page already seeded sample
             <code>oam.record.v1</code> memories into your browser's <code>localStorage</code> so you can explore bitemporal
-            queries and export <code>AGENTS.md</code> immediately.
+            queries and export <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>oam-memory.mdc</code>,
+            <code>GEMINI.md</code>, or <code>copilot-instructions.md</code> immediately.
           </p>
         </div>
 
@@ -1097,7 +1270,7 @@
               <h3>Inspect Lineage &amp; Bitemporal Recall</h3>
               <p>
                 Click <strong>6 mo ago</strong> in the Memory Console's <em>Valid At</em> bar. Watch
-                <code>private/architecture/database-engine</code> and <code>public/conventions/code-style</code>
+                <code>private/architecture/storage-backend</code> and <code>public/conventions/code-style</code>
                 rewind to their earlier valid versions—without losing modern records.
               </p>
             </div>
@@ -1106,28 +1279,50 @@
 
           <div class="step-card">
             <div>
-              <div class="step-num">Minute 2 · Supersede &amp; Export</div>
-              <h3>Generate <code>AGENTS.md</code></h3>
+              <div class="step-num">Minute 2 · Compile &amp; Export</div>
+              <h3>Export for Any Coding Agent</h3>
               <p>
-                Supersede any memory to create a linked <code>v(n+1)</code> record, then export a clean, deterministic
-                <code>AGENTS.md</code> file containing only active, valid, non-expired memories to drop into any codebase.
+                Use the live <strong>Multi-Agent Compiler</strong> to switch between <code>AGENTS.md</code>,
+                <code>CLAUDE.md</code>, Cursor <code>.mdc</code>, <code>GEMINI.md</code>, and Copilot instructions while
+                watching the real-time Context Budget Meter.
               </p>
             </div>
-            <button class="btn btn-sm btn-primary" id="qs-btn-export">Preview AGENTS.md Export</button>
+            <button class="btn btn-sm btn-primary" id="qs-btn-export">Open Multi-Agent Export</button>
           </div>
 
           <div class="step-card">
             <div>
-              <div class="step-num">Minute 3 · Optional Persistence</div>
+              <div class="step-num">Minute 3 · Optional Persistence &amp; MCP</div>
               <h3>Connect GitHub Repo or Worker</h3>
               <p>
                 Keep private memories in a Private GitHub Repo (one fine-grained PAT, zero servers) or deploy
-                <code>worker.js</code> to Cloudflare Workers Free tier to route <code>public/*</code> &amp;
-                <code>shared/*</code> to a GitHub Gist and <code>private/*</code> to your private repo.
+                <code>worker.js</code> to Cloudflare Workers Free tier to get REST + live HTTP <code>/mcp</code> tools.
               </p>
             </div>
             <button class="btn btn-sm" id="qs-btn-backend">Configure Backend</button>
           </div>
+        </div>
+
+        <div class="doc-card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+            <h2 style="margin:0;">MCP Client Configuration (<code>POST /mcp</code>)</h2>
+            <button type="button" class="btn btn-sm" id="btn-qs-copy-mcp">Copy MCP Config</button>
+          </div>
+          <p>
+            Connect Claude Code, Cursor, Antigravity, or any HTTP MCP client directly to your deployed
+            <code>worker.js</code> endpoint (exposes <code>memory_search</code>, <code>memory_get</code>, and
+            <code>memory_put</code> with automatic Gist vs. Private Repo routing):
+          </p>
+          <pre class="code-block" id="qs-mcp-snippet">{
+  "mcpServers": {
+    "open-agent-memory": {
+      "url": "https://&lt;your-worker&gt;.workers.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer &lt;API_KEY&gt;"
+      }
+    }
+  }
+}</pre>
         </div>
 
         <div class="doc-card">
@@ -1638,6 +1833,12 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           github: { repo: "", branch: "main", token: "", remember: false },
           worker: { url: "", token: "", remember: false },
         },
+        compiler: {
+          target: "agents", // "agents" | "claude" | "cursor" | "gemini" | "copilot"
+          groupBy: "tag", // "tag" | "prefix" | "namespace"
+          claudeIncludeAgents: false,
+          includeCitations: true,
+        },
       };
 
       // ---------------------------------------------------------------------
@@ -1684,7 +1885,7 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         return new TextDecoder().decode(bytes);
       }
 
-      function escapeHtml(str) {
+      function esc(str) {
         return String(str ?? "")
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
@@ -1692,6 +1893,8 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#39;");
       }
+
+      const escapeHtml = esc;
 
       function safeHref(uri) {
         const trimmed = String(uri || "").trim();
@@ -2566,11 +2769,48 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
       }
 
       // ---------------------------------------------------------------------
-      // Export Formatters
+      // Multi-Agent Compiler & Live Context-Budget Meter
       // ---------------------------------------------------------------------
-      function generateAgentsMarkdown(nsFilter = "all", includeCitations = true) {
-        const nowMs = Date.now();
-        const active = state.records
+      const COMPILER_TARGETS = {
+        agents: {
+          id: "agents",
+          label: "AGENTS.md",
+          displayPath: "AGENTS.md",
+          downloadName: "AGENTS.md",
+          mimeType: "text/markdown;charset=utf-8",
+        },
+        claude: {
+          id: "claude",
+          label: "CLAUDE.md",
+          displayPath: "CLAUDE.md",
+          downloadName: "CLAUDE.md",
+          mimeType: "text/markdown;charset=utf-8",
+        },
+        cursor: {
+          id: "cursor",
+          label: ".cursor/rules/oam-memory.mdc",
+          displayPath: ".cursor/rules/oam-memory.mdc",
+          downloadName: "oam-memory.mdc",
+          mimeType: "text/markdown;charset=utf-8",
+        },
+        gemini: {
+          id: "gemini",
+          label: "GEMINI.md",
+          displayPath: "GEMINI.md",
+          downloadName: "GEMINI.md",
+          mimeType: "text/markdown;charset=utf-8",
+        },
+        copilot: {
+          id: "copilot",
+          label: ".github/copilot-instructions.md",
+          displayPath: ".github/copilot-instructions.md",
+          downloadName: "copilot-instructions.md",
+          mimeType: "text/markdown;charset=utf-8",
+        },
+      };
+
+      function getActiveRecordsForNamespace(records, nsFilter = "all", nowMs = Date.now()) {
+        return records
           .filter((r) => {
             if (r.superseded_by !== null) return false;
             if (r.expires_at && Date.parse(r.expires_at) <= nowMs) return false;
@@ -2582,50 +2822,302 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
             return true;
           })
           .sort((a, b) => a.namespace.localeCompare(b.namespace) || a.key.localeCompare(b.key));
+      }
 
-        const lines = [
-          "# AGENTS.md — OpenAgentMemory Context",
-          "",
-          `> Generated by OpenAgentMemory (\`${RECORD_SCHEMA}\`)`,
-          `> Exported: \`${new Date().toISOString()}\` · Active memories: **${active.length}**`,
-          "",
-        ];
+      function formatProvenanceCompact(rec) {
+        const actor = rec.provenance?.actor || "unknown";
+        const source = rec.provenance?.source || "unknown";
+        const trust = rec.provenance?.trust ? `/${rec.provenance.trust}` : "";
+        return `${actor} (${source}${trust})`;
+      }
 
-        if (active.length === 0) {
-          lines.push("_No active, non-expired memories matched the selected namespace._", "");
-          return lines.join("\n");
+      function formatCitationsInline(rec) {
+        if (!Array.isArray(rec.citations) || rec.citations.length === 0) return "";
+        return rec.citations
+          .map((c) => `[${c.label || c.uri}](${c.uri})${c.excerpt ? ` — "${c.excerpt}"` : ""}`)
+          .join("; ");
+      }
+
+      function resolveGroupName(rec, groupBy) {
+        if (groupBy === "tag") {
+          return Array.isArray(rec.tags) && rec.tags.length > 0 ? `#${rec.tags[0]}` : "#untagged";
         }
-
-        const grouped = new Map();
-        for (const r of active) {
-          if (!grouped.has(r.namespace)) grouped.set(r.namespace, []);
-          grouped.get(r.namespace).push(r);
+        if (groupBy === "prefix") {
+          const prefix = String(rec.key || "").split(/[-_.]/)[0] || "general";
+          return `${prefix}-*`;
         }
+        return rec.namespace;
+      }
 
-        for (const ns of Array.from(grouped.keys()).sort()) {
-          const route = routeNamespace(ns);
-          lines.push(`## \`${ns}\` (${route === "gist" ? "Gist · public/shared" : "Private Repo"})`, "");
-          for (const r of grouped.get(ns)) {
-            const meta = [
-              `\`oam://${r.namespace}/${r.key}\``,
-              `kind: \`${r.kind || "fact"}\``,
-              `v${r.version || 1}`,
-              `valid from: ${fmtShortDate(r.valid_from)}`,
-            ];
-            if (r.expires_at) meta.push(`expires: ${fmtShortDate(r.expires_at)}`);
-            lines.push(`### ${r.title}`, "", `_${meta.join(" · ")}_`, "", r.content, "");
-            if (includeCitations && Array.isArray(r.citations) && r.citations.length > 0) {
-              lines.push("**Citations:**");
-              for (const c of r.citations) {
-                const label = c.label || c.uri;
-                const excerpt = c.excerpt ? ` — "${c.excerpt}"` : "";
-                lines.push(`- [${label}](${c.uri})${excerpt}`);
+      function compileMultiAgentTarget(records, opts = {}) {
+        const target = opts.target || "agents";
+        const nsFilter = opts.namespace || "all";
+        const nsLabel = nsFilter === "all" ? "all" : `${nsFilter}/*`;
+        const groupBy = opts.groupBy || "tag";
+        const includeCitations = opts.includeCitations !== false;
+        const claudeIncludeAgents = Boolean(opts.claudeIncludeAgents);
+        const active = getActiveRecordsForNamespace(records, nsFilter);
+
+        if (target === "agents") {
+          const lines = [
+            "# AGENTS.md — OpenAgentMemory Context",
+            "",
+            `> Schema: \`${RECORD_SCHEMA}\` · Namespace: \`${nsLabel}\` · Active records: **${active.length}**`,
+            "",
+          ];
+          if (active.length === 0) {
+            lines.push("_No active, non-expired memories matched the selected namespace._", "");
+            return { text: lines.join("\n"), active };
+          }
+          const grouped = new Map();
+          for (const r of active) {
+            const g = resolveGroupName(r, groupBy);
+            if (!grouped.has(g)) grouped.set(g, []);
+            grouped.get(g).push(r);
+          }
+          for (const groupKey of Array.from(grouped.keys()).sort()) {
+            lines.push(`## ${groupKey}`, "");
+            for (const r of grouped.get(groupKey)) {
+              const meta = [
+                `\`oam://${r.namespace}/${r.key}\``,
+                `v${safeVersion(r.version)}`,
+                `kind: \`${r.kind || "fact"}\``,
+                `provenance: ${formatProvenanceCompact(r)}`,
+                `valid from: ${fmtShortDate(r.valid_from)}`,
+              ];
+              if (r.expires_at) meta.push(`expires: ${fmtShortDate(r.expires_at)}`);
+              lines.push(`### ${r.title}`, "", `_${meta.join(" · ")}_`, "", r.content, "");
+              if (includeCitations && Array.isArray(r.citations) && r.citations.length > 0) {
+                lines.push("**Citations:**");
+                for (const c of r.citations) {
+                  const label = c.label || c.uri;
+                  const excerpt = c.excerpt ? ` — "${c.excerpt}"` : "";
+                  lines.push(`- [${label}](${c.uri})${excerpt}`);
+                }
+                lines.push("");
               }
-              lines.push("");
             }
           }
+          return { text: lines.join("\n"), active };
         }
-        return lines.join("\n");
+
+        if (target === "claude") {
+          const lines = [];
+          if (claudeIncludeAgents) {
+            lines.push("@AGENTS.md", "");
+          }
+          lines.push(
+            `# CLAUDE.md — Active Agent Memory (${nsLabel})`,
+            "",
+            `> Compiled from OpenAgentMemory (\`${RECORD_SCHEMA}\`) · ${active.length} active rule(s)`,
+            ""
+          );
+          if (active.length === 0) {
+            lines.push("- _No active memories for this namespace._", "");
+            return { text: lines.join("\n"), active };
+          }
+          for (const r of active) {
+            const singleLineBody = String(r.content || "").replace(/\s*\n+\s*/g, " ").trim();
+            const meta = `\`oam://${r.namespace}/${r.key}\` v${safeVersion(r.version)}, ${formatProvenanceCompact(r)}`;
+            lines.push(`- **${r.title}** (${meta}): ${singleLineBody}`);
+            if (includeCitations && Array.isArray(r.citations) && r.citations.length > 0) {
+              lines.push(`  - _Ref:_ ${formatCitationsInline(r)}`);
+            }
+          }
+          lines.push("");
+          return { text: lines.join("\n"), active };
+        }
+
+        if (target === "cursor") {
+          const lines = [
+            "---",
+            `description: OpenAgentMemory exported rules for ${nsLabel}`,
+            'globs: ["**/*"]',
+            "alwaysApply: true",
+            "---",
+            "",
+            `# OpenAgentMemory Rules (${nsLabel})`,
+            "",
+          ];
+          if (active.length === 0) {
+            lines.push("_No active memories matched this namespace._", "");
+            return { text: lines.join("\n"), active };
+          }
+          for (const r of active) {
+            lines.push(`## ${r.title}`);
+            lines.push(`- Address: \`oam://${r.namespace}/${r.key}\` (v${safeVersion(r.version)} · ${r.kind || "fact"})`);
+            lines.push(`- Rule: ${String(r.content || "").replace(/\s*\n+\s*/g, " ").trim()}`);
+            lines.push(`- Provenance: ${formatProvenanceCompact(r)}`);
+            if (includeCitations && Array.isArray(r.citations) && r.citations.length > 0) {
+              lines.push(`- Citations: ${formatCitationsInline(r)}`);
+            }
+            lines.push("");
+          }
+          return { text: lines.join("\n"), active };
+        }
+
+        if (target === "gemini") {
+          const lines = [
+            "# GEMINI.md — OpenAgentMemory Context",
+            "",
+            `<!-- oam:schema=${RECORD_SCHEMA} namespace=${nsLabel} active=${active.length} -->`,
+            "",
+            "Use the following verified bitemporal memories as authoritative workspace context. Prefer higher-priority constraints and decisions over general defaults.",
+            "",
+          ];
+          if (active.length === 0) {
+            lines.push("_No active memories matched this namespace._", "");
+            return { text: lines.join("\n"), active };
+          }
+          const kindOrder = ["constraint", "decision", "preference", "procedure", "context", "fact"];
+          const kindLabels = {
+            constraint: "Constraints (Must Follow)",
+            decision: "Architectural Decisions",
+            preference: "User & Coding Preferences",
+            procedure: "Procedures & Workflows",
+            context: "Active Operational Context",
+            fact: "Verified Facts",
+          };
+          const byKind = new Map();
+          for (const r of active) {
+            const k = kindLabels[r.kind] ? r.kind : "fact";
+            if (!byKind.has(k)) byKind.set(k, []);
+            byKind.get(k).push(r);
+          }
+          for (const k of kindOrder) {
+            const group = byKind.get(k);
+            if (!group || group.length === 0) continue;
+            lines.push(`## ${kindLabels[k]}`, "");
+            for (const r of group) {
+              lines.push(`- **[${r.title}]** (\`oam://${r.namespace}/${r.key}\` · v${safeVersion(r.version)} · ${formatProvenanceCompact(r)})`);
+              lines.push(`  ${String(r.content || "").replace(/\n+/g, "\n  ")}`);
+              if (includeCitations && Array.isArray(r.citations) && r.citations.length > 0) {
+                lines.push(`  _Evidence:_ ${formatCitationsInline(r)}`);
+              }
+            }
+            lines.push("");
+          }
+          return { text: lines.join("\n"), active };
+        }
+
+        // target === "copilot" (.github/copilot-instructions.md)
+        const lines = [
+          "# GitHub Copilot Repository Instructions",
+          "",
+          `<!-- Generated by OpenAgentMemory (${RECORD_SCHEMA}) for namespace: ${nsLabel} -->`,
+          "",
+          "Follow these repository conventions, architectural decisions, and preferences:",
+          "",
+        ];
+        if (active.length === 0) {
+          lines.push("- No active OpenAgentMemory entries for this namespace.", "");
+          return { text: lines.join("\n"), active };
+        }
+        for (const r of active) {
+          const compact = String(r.content || "").replace(/\s*\n+\s*/g, " ").trim();
+          const cit = includeCitations && Array.isArray(r.citations) && r.citations.length > 0
+            ? ` (Ref: ${r.citations.map((c) => c.label || c.uri).join(", ")})`
+            : "";
+          lines.push(`- **${r.title}** [\`${r.kind || "fact"}\`, v${safeVersion(r.version)}]: ${compact}${cit}`);
+        }
+        lines.push("");
+        return { text: lines.join("\n"), active };
+      }
+
+      function computeContextBudget(text, activeCount) {
+        const str = String(text || "");
+        const lines = str ? str.split("\n").length : 0;
+        const sizeKB = new Blob([str]).size / 1024;
+        const tokens = Math.ceil(str.length / 4);
+
+        let level = "healthy";
+        let label = "Healthy";
+        let badgeClass = "badge-active";
+        let note = "Within standard agent auto-memory budget (<150 lines and <20 KB).";
+
+        if (lines > 200 || sizeKB > 25) {
+          level = "over";
+          label = "Over Budget";
+          badgeClass = "badge-expired";
+          note = "Exceeds standard agent context cap — prune or split namespace";
+        } else if (lines >= 150 || sizeKB >= 20) {
+          level = "warning";
+          label = "Warning";
+          badgeClass = "badge-historical";
+          note = "Approaching Claude/Codex auto-memory cap — consider superseding or pruning";
+        }
+
+        const pct = Math.min(100, Math.max(activeCount > 0 ? 4 : 0, Math.round(Math.max(lines / 200, sizeKB / 25) * 100)));
+        return { activeCount, lines, sizeKB, tokens, level, label, badgeClass, note, pct };
+      }
+
+      function renderBudgetMeterHtml(budget, targetLabel) {
+        return `
+          <div class="budget-top">
+            <div class="budget-stats">
+              <span>Active: <strong>${budget.activeCount}</strong></span>
+              <span>·</span>
+              <span>Lines: <strong>${budget.lines}</strong></span>
+              <span>·</span>
+              <span>Size: <strong>${budget.sizeKB.toFixed(2)} KB</strong></span>
+              <span>·</span>
+              <span>Est. tokens: <strong>~${budget.tokens.toLocaleString()}</strong></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="mono" style="font-size:11px; color:var(--ink-faint);">${esc(targetLabel)}</span>
+              <span class="badge ${budget.badgeClass}">${esc(budget.label)}</span>
+            </div>
+          </div>
+          <div class="budget-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${budget.pct}">
+            <div class="budget-bar-fill ${budget.level}" style="width:${budget.pct}%;"></div>
+          </div>
+          <div class="budget-note ${budget.level}">${esc(budget.note)}</div>
+        `;
+      }
+
+      function renderCompilerAndBudget() {
+        const nsFilter = state.filters.namespace || "all";
+        const targetMeta = COMPILER_TARGETS[state.compiler.target] || COMPILER_TARGETS.agents;
+
+        const { text, active } = compileMultiAgentTarget(state.records, {
+          target: state.compiler.target,
+          namespace: nsFilter,
+          groupBy: state.compiler.groupBy,
+          claudeIncludeAgents: state.compiler.claudeIncludeAgents,
+          includeCitations: state.compiler.includeCitations,
+        });
+
+        const budget = computeContextBudget(text, active.length);
+        const meterHtml = renderBudgetMeterHtml(budget, targetMeta.displayPath);
+
+        const listMeter = document.getElementById("budget-meter-list");
+        const compMeter = document.getElementById("budget-meter-compiler");
+        if (listMeter) listMeter.innerHTML = meterHtml;
+        if (compMeter) compMeter.innerHTML = meterHtml;
+
+        const previewEl = document.getElementById("mac-preview");
+        if (previewEl) previewEl.textContent = text;
+
+        const nsBadge = document.getElementById("mac-ns-badge");
+        if (nsBadge) nsBadge.textContent = `namespace: ${nsFilter === "all" ? "all" : nsFilter + "/*"}`;
+
+        const pathBadge = document.getElementById("mac-target-path");
+        if (pathBadge) pathBadge.textContent = targetMeta.displayPath;
+
+        const groupWrap = document.getElementById("mac-group-wrap");
+        if (groupWrap) groupWrap.style.display = state.compiler.target === "agents" ? "inline-flex" : "none";
+
+        const claudeWrap = document.getElementById("mac-claude-opt-wrap");
+        if (claudeWrap) claudeWrap.style.display = state.compiler.target === "claude" ? "inline-flex" : "none";
+      }
+
+      function generateAgentsMarkdown(nsFilter = "all", includeCitations = true) {
+        return compileMultiAgentTarget(state.records, {
+          target: "agents",
+          namespace: nsFilter,
+          groupBy: state.compiler.groupBy,
+          includeCitations,
+        }).text;
       }
 
       function generateJsonBundle(includeAll = true) {
@@ -2677,6 +3169,8 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         const listEl = document.getElementById("record-list");
         const filtered = getFilteredRecords();
         const asOfMs = Date.parse(state.filters.asOfIso) || Date.now();
+
+        renderCompilerAndBudget();
 
         if (filtered.length === 0) {
           listEl.innerHTML = `<div class="empty-state">No memories match the current filter and <strong>Valid At</strong> timestamp.<br/><span style="font-size:12.5px;">Try clearing the search, switching namespaces, or clicking <strong>Now</strong>.</span></div>`;
@@ -3644,6 +4138,55 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           } catch {
             // ignore storage errors
           }
+        });
+
+        // Multi-Agent Compiler controls
+        document.querySelectorAll("#mac-format-tabs .compiler-tab").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const target = btn.getAttribute("data-target");
+            if (!COMPILER_TARGETS[target]) return;
+            state.compiler.target = target;
+            document.querySelectorAll("#mac-format-tabs .compiler-tab").forEach((b) => {
+              const isAct = b === btn;
+              b.classList.toggle("active", isAct);
+              b.setAttribute("aria-selected", String(isAct));
+            });
+            renderCompilerAndBudget();
+          });
+        });
+
+        document.getElementById("mac-group-by").addEventListener("change", (e) => {
+          state.compiler.groupBy = e.target.value;
+          renderCompilerAndBudget();
+        });
+
+        document.getElementById("mac-claude-include-agents").addEventListener("change", (e) => {
+          state.compiler.claudeIncludeAgents = e.target.checked;
+          renderCompilerAndBudget();
+        });
+
+        document.getElementById("mac-include-citations").addEventListener("change", (e) => {
+          state.compiler.includeCitations = e.target.checked;
+          renderCompilerAndBudget();
+        });
+
+        document.getElementById("btn-mac-copy").addEventListener("click", () => {
+          const targetMeta = COMPILER_TARGETS[state.compiler.target] || COMPILER_TARGETS.agents;
+          const text = document.getElementById("mac-preview").textContent || "";
+          copyText(text, `Copied ${targetMeta.displayPath} to clipboard`);
+        });
+
+        document.getElementById("btn-mac-download").addEventListener("click", () => {
+          const targetMeta = COMPILER_TARGETS[state.compiler.target] || COMPILER_TARGETS.agents;
+          const text = document.getElementById("mac-preview").textContent || "";
+          downloadFile(targetMeta.downloadName, text, targetMeta.mimeType);
+          toast(`Downloaded ${targetMeta.downloadName}`);
+        });
+
+        // Quickstart MCP client config copy button
+        document.getElementById("btn-qs-copy-mcp").addEventListener("click", () => {
+          const snippet = document.getElementById("qs-mcp-snippet").textContent || "";
+          copyText(snippet, "Copied MCP client configuration");
         });
       }
 

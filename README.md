@@ -128,7 +128,55 @@ Use `worker.js` when you want an HTTP API for CLI scripts, coding agents, or cro
    ```bash
    curl https://open-agent-memory.<your-subdomain>.workers.dev/health
    ```
-6. Connect `index.html` by opening **Storage Backend → Cloudflare Worker**, entering your Worker URL + `OAM_API_TOKEN`, and clicking **Test /health** → **Save & Activate**.
+6. Connect `index.html` by opening **Storage Backend → Cloudflare Worker**, entering your Worker URL + `OAM_API_TOKEN` (or `API_KEY`), and clicking **Test /health** → **Save & Activate**.
+
+### Connect MCP-Compatible Coding Agents (`POST /mcp`)
+
+`worker.js` exposes a lightweight **JSON-RPC 2.0 MCP endpoint** at `POST /mcp` (protocol `2024-11-05`) with three live memory tools—`memory_search`, `memory_get`, and `memory_put`—that preserve fail-closed namespace routing (`public/*` & `shared/*` → Gist; `private/*` & default → Private GitHub Repo).
+
+Paste this configuration into your MCP-compatible coding agent (Claude Code, Cursor, Antigravity, etc.):
+
+```json
+{
+  "mcpServers": {
+    "open-agent-memory": {
+      "url": "https://<your-worker>.workers.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer <API_KEY>"
+      }
+    }
+  }
+}
+```
+
+> Omit `"headers"` if you have not configured `OAM_API_TOKEN` / `API_KEY` (or for public-only reads when `PUBLIC_READ_OPEN` is enabled).
+
+Quick `curl` test against `/mcp`:
+
+```bash
+curl -X POST "https://<your-worker>.workers.dev/mcp" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <API_KEY>" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+---
+
+## Multi-Agent Compiler & Live Context-Budget Meter (`index.html`)
+
+Inside `index.html`, the **Multi-Agent Compiler** compiles active (non-superseded, non-expired) records for the selected namespace into five ready-to-use agent formats with one-click **Copy to Clipboard** and **Download File**:
+
+- `AGENTS.md` (Universal — grouped by tag, key prefix, or namespace, with version, provenance, and citations)
+- `CLAUDE.md` (Claude Code — concise bulleted rules with optional `@AGENTS.md` include header toggle)
+- `.cursor/rules/oam-memory.mdc` (Cursor MDC with YAML frontmatter)
+- `GEMINI.md` (Gemini / Antigravity structured priority sections)
+- `.github/copilot-instructions.md` (Compact repository-level Copilot instructions)
+
+The real-time **Context-Budget & Bloat Meter** tracks active record count, total lines, size in KB, and estimated tokens against standard auto-memory caps:
+
+- **Healthy (Green):** `< 150` lines and `< 20 KB`
+- **Warning (Amber):** `150–200` lines or `20–25 KB` (*approaching Claude/Codex auto-memory cap*)
+- **Over Budget (Red):** `> 200` lines or `> 25 KB` (*prune or split namespace*)
 
 ---
 

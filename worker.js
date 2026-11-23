@@ -20,8 +20,9 @@
  *   GIST_ID          : Target GitHub Gist ID for public/* and shared/* namespaces
  *   GITHUB_REPO      : Target private GitHub repository in "owner/repo" format for private/*
  *   GITHUB_BRANCH    : Optional branch name in GITHUB_REPO (default: "main")
- *   OAM_API_TOKEN    : Optional bearer token protecting writes and non-public reads
- *   PUBLIC_READ_OPEN : Set to "false" to also require OAM_API_TOKEN for public/* reads (default: "true")
+ *   OAM_API_TOKEN    : Optional bearer token protecting writes and non-public reads (alias: API_KEY)
+ *   API_KEY          : Alias for OAM_API_TOKEN
+ *   PUBLIC_READ_OPEN : Set to "false" to also require Bearer auth for public/* reads (default: "true")
  *   ALLOWED_ORIGIN   : CORS Access-Control-Allow-Origin value (default: "*")
  */
 
@@ -29,6 +30,9 @@ const RECORD_SCHEMA = "oam.record.v1";
 const CHAIN_SCHEMA = "oam.chain.v1";
 const INDEX_SCHEMA = "oam.index.v1";
 const BUNDLE_SCHEMA = "oam.bundle.v1";
+
+const MCP_PROTOCOL_VERSION = "2024-11-05";
+const MCP_SERVER_INFO = { name: "open-agent-memory", version: "1.0.0" };
 
 const NAMESPACE_RE = /^[a-z0-9][a-z0-9_-]*(?:\/[a-z0-9][a-z0-9_-]*)*$/;
 const KEY_RE = /^[a-z0-9][a-z0-9._-]*$/;
@@ -64,6 +68,11 @@ export default {
             ok: true,
             service: "OpenAgentMemory",
             schema: RECORD_SCHEMA,
+            mcp: {
+              endpoint: "/mcp",
+              protocolVersion: MCP_PROTOCOL_VERSION,
+              tools: ["memory_search", "memory_get", "memory_put"],
+            },
             routing: {
               gist: ["public", "public/*", "shared", "shared/*"],
               repo: ["private", "private/*", "* (fail-closed default)"],
@@ -72,7 +81,7 @@ export default {
               gist: Boolean(env.GIST_ID && (env.GIST_TOKEN || env.GITHUB_TOKEN)),
               repo: Boolean(env.GITHUB_REPO && (env.REPO_TOKEN || env.GITHUB_TOKEN)),
             },
-            auth_enabled: Boolean(env.OAM_API_TOKEN),
+            auth_enabled: Boolean(getConfiguredApiToken(env)),
           },
           200,
           cors
@@ -81,6 +90,11 @@ export default {
 
       const authed = isAuthorized(request, env);
       const publicReadOpen = env.PUBLIC_READ_OPEN !== "false";
+
+      // POST /mcp — Lightweight JSON-RPC 2.0 Model Context Protocol endpoint
+      if (method === "POST" && path === "/mcp") {
+        return await handleMcpRequest(request, env, authed, publicReadOpen, cors);
+      }
 
       // GET /records — query records across routed backends
       if (method === "GET" && path === "/records") {
@@ -100,12 +114,7 @@ export default {
           return jsonResponse({ ok: false, error: "Unauthorized" }, 401, cors);
         }
 
-        const route = routeNamespace(namespace);
-        const chain =
-          route === "gist"
-            ? await readGistChain(env, namespace, key)
-            : await readRepoChain(env, namespace, key);
-
+        const { route, records: chain } = await loadByNamespace(env, namespace, key);
         const head = chain.find((r) => r.superseded_by === null) || null;
         return jsonResponse(
           {
@@ -139,16 +148,12 @@ export default {
           return jsonResponse({ ok: false, error: "Validation failed", details: errors }, 400, cors);
         }
 
-        const route = routeNamespace(record.namespace);
-        const saved =
-          route === "gist"
-            ? await upsertGistRecord(env, record, closePreviousValidTo)
-            : await upsertRepoRecord(env, record, closePreviousValidTo);
+        const saved = await saveByNamespace(env, record, closePreviousValidTo);
 
         return jsonResponse(
           {
             ok: true,
-            route,
+            route: saved.route,
             address: `oam://${saved.record.namespace}/${saved.record.key}`,
             record: saved.record,
             superseded: saved.superseded,
@@ -1027,15 +1032,478 @@ function renderAgentsMarkdown(records, opts = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Unified Namespace Router Helpers (Shared by REST & MCP)
+// ---------------------------------------------------------------------------
+
+export async function loadByNamespace(env, namespace, key = null) {
+  const route = routeNamespace(namespace);
+  if (key) {
+    const records =
+      route === "gist"
+        ? await readGistChain(env, namespace, key)
+        : await readRepoChain(env, namespace, key);
+    return { route, records };
+  }
+  const all = route === "gist" ? await listGistRecords(env) : await listRepoRecords(env);
+  const records = all.filter(
+    (r) => r.namespace === namespace || r.namespace.startsWith(`${namespace}/`)
+  );
+  return { route, records };
+}
+
+export async function saveByNamespace(env, record, closePreviousValidTo = true) {
+  const route = routeNamespace(record.namespace);
+  const saved =
+    route === "gist"
+      ? await upsertGistRecord(env, record, closePreviousValidTo)
+      : await upsertRepoRecord(env, record, closePreviousValidTo);
+  return { route, ...saved };
+}
+
+// ---------------------------------------------------------------------------
+// Lightweight HTTP MCP Endpoint (POST /mcp — JSON-RPC 2.0)
+// ---------------------------------------------------------------------------
+
+const MCP_TOOLS = [
+  {
+    name: "memory_search",
+    description:
+      "Search active (non-superseded, non-expired, currently valid) OpenAgentMemory records within a namespace.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        namespace: {
+          type: "string",
+          description:
+            "Namespace prefix to search (e.g. 'public/architecture', 'shared/team', 'private/preferences').",
+        },
+        query: {
+          type: "string",
+          description: "Optional case-insensitive substring query matched against key, title, content, and tags.",
+        },
+        tag: {
+          type: "string",
+          description: "Optional exact tag filter (case-insensitive).",
+        },
+      },
+      required: ["namespace"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "memory_get",
+    description:
+      "Retrieve the active OpenAgentMemory record (or full version history chain) for a specific namespace and key.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        namespace: {
+          type: "string",
+          description: "Namespace containing the memory key (e.g. 'private/preferences').",
+        },
+        mem_key: {
+          type: "string",
+          description: "Logical memory key within the namespace (e.g. 'coding-style').",
+        },
+        include_history: {
+          type: "boolean",
+          description: "When true, return the full version history chain instead of only the active head.",
+          default: false,
+        },
+      },
+      required: ["namespace", "mem_key"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "memory_put",
+    description:
+      "Write a new oam.record.v1 version to a namespace/key, automatically superseding any prior active record by setting superseded_by and closing valid_to.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        namespace: {
+          type: "string",
+          description: "Target namespace ('public/*' & 'shared/*' route to Gist; 'private/*' & others route to Private Repo).",
+        },
+        mem_key: {
+          type: "string",
+          description: "Logical memory key within the namespace.",
+        },
+        content: {
+          type: "string",
+          description: "Memory payload in plain text or Markdown.",
+        },
+        title: {
+          type: "string",
+          description: "Optional concise title (auto-derived from content/key if omitted).",
+        },
+        kind: {
+          type: "string",
+          enum: ["fact", "preference", "decision", "procedure", "context", "constraint"],
+          description: "Optional semantic record kind (default: 'fact').",
+        },
+        provenance: {
+          description: "Optional provenance source string or oam.record.v1 provenance object.",
+          oneOf: [{ type: "string" }, { type: "object" }],
+        },
+        source_agent: {
+          type: "string",
+          description: "Optional agent identifier stored in provenance.actor (e.g. 'claude-code', 'cursor', 'antigravity').",
+        },
+        citations: {
+          type: "array",
+          description: "Optional citations as URI strings or { uri, label?, excerpt? } objects.",
+          items: {
+            oneOf: [
+              { type: "string" },
+              {
+                type: "object",
+                properties: {
+                  uri: { type: "string" },
+                  label: { type: "string" },
+                  excerpt: { type: "string" },
+                },
+                required: ["uri"],
+              },
+            ],
+          },
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional keyword tags.",
+        },
+        expires_at: {
+          type: ["string", "null"],
+          description: "Optional ISO-8601 UTC expiration TTL timestamp or null.",
+        },
+      },
+      required: ["namespace", "mem_key", "content"],
+      additionalProperties: false,
+    },
+  },
+];
+
+function jsonRpcResult(id, result, cors) {
+  return jsonResponse({ jsonrpc: "2.0", id: id ?? null, result }, 200, cors);
+}
+
+function jsonRpcError(id, code, message, cors, httpStatus = 200, data = undefined) {
+  const errObj = { code, message };
+  if (data !== undefined) errObj.data = data;
+  return jsonResponse({ jsonrpc: "2.0", id: id ?? null, error: errObj }, httpStatus, cors);
+}
+
+function validateNamespaceOnly(namespace) {
+  if (!namespace || namespace.length > 128 || !NAMESPACE_RE.test(namespace) || namespace.includes("..")) {
+    return "Invalid namespace. Use lowercase slash-delimited segments (e.g. 'public/architecture' or 'private/preferences').";
+  }
+  return null;
+}
+
+function deriveTitleFromContent(content, memKey) {
+  const firstLine = String(content || "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^#+\s*/, "").trim())
+    .find(Boolean);
+  if (firstLine) {
+    return firstLine.length > 100 ? firstLine.slice(0, 97) + "..." : firstLine;
+  }
+  return memKey;
+}
+
+async function handleMcpRequest(request, env, authed, publicReadOpen, cors) {
+  let rpc;
+  try {
+    rpc = await request.json();
+  } catch {
+    return jsonRpcError(null, -32700, "Parse error: invalid JSON body", cors, 400);
+  }
+
+  if (!rpc || typeof rpc !== "object" || Array.isArray(rpc) || rpc.jsonrpc !== "2.0" || typeof rpc.method !== "string") {
+    return jsonRpcError(rpc && rpc.id !== undefined ? rpc.id : null, -32600, "Invalid Request: expected JSON-RPC 2.0 object with method", cors, 400);
+  }
+
+  const { id, method, params } = rpc;
+
+  // JSON-RPC notifications (no id) require no result body
+  if (id === undefined && (method === "notifications/initialized" || method.startsWith("notifications/"))) {
+    return new Response(null, { status: 202, headers: cors });
+  }
+
+  // Enforce Bearer auth upfront when PUBLIC_READ_OPEN is explicitly disabled
+  if (!authed && !publicReadOpen) {
+    return jsonRpcError(id, -32001, "Unauthorized: valid Authorization: Bearer <API_KEY> required", cors, 401);
+  }
+
+  try {
+    if (method === "initialize") {
+      return jsonRpcResult(
+        id,
+        {
+          protocolVersion: MCP_PROTOCOL_VERSION,
+          serverInfo: MCP_SERVER_INFO,
+          capabilities: { tools: {} },
+        },
+        cors
+      );
+    }
+
+    if (method === "ping") {
+      return jsonRpcResult(id, {}, cors);
+    }
+
+    if (method === "tools/list") {
+      return jsonRpcResult(id, { tools: MCP_TOOLS }, cors);
+    }
+
+    if (method === "tools/call") {
+      if (!params || typeof params !== "object" || typeof params.name !== "string") {
+        return jsonRpcError(id, -32602, "Invalid params: expected { name, arguments }", cors);
+      }
+      const toolName = params.name;
+      const args = params.arguments && typeof params.arguments === "object" ? params.arguments : {};
+      const outcome = await executeMcpTool(toolName, args, env, authed, publicReadOpen);
+      if (outcome.error) {
+        return jsonRpcError(
+          id,
+          outcome.error.code,
+          outcome.error.message,
+          cors,
+          outcome.error.httpStatus || 200,
+          outcome.error.data
+        );
+      }
+      return jsonRpcResult(
+        id,
+        {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(outcome.result, null, 2),
+            },
+          ],
+        },
+        cors
+      );
+    }
+
+    return jsonRpcError(id, -32601, `Method not found: ${method}`, cors);
+  } catch (err) {
+    return jsonRpcError(id, -32603, err.message || "Internal error", cors);
+  }
+}
+
+async function executeMcpTool(toolName, args, env, authed, publicReadOpen) {
+  if (toolName === "memory_search") {
+    const namespace = String(args.namespace || "").trim();
+    const nsErr = validateNamespaceOnly(namespace);
+    if (nsErr) return { error: { code: -32602, message: `Invalid params: ${nsErr}` } };
+
+    if (!authed && !(isPublicNamespace(namespace) && publicReadOpen)) {
+      return {
+        error: {
+          code: -32001,
+          httpStatus: 401,
+          message: "Unauthorized: Bearer token required to read non-public namespaces.",
+        },
+      };
+    }
+
+    const query = args.query ? String(args.query).trim().toLowerCase() : "";
+    const tag = args.tag ? String(args.tag).trim().toLowerCase() : "";
+    const nowMs = Date.now();
+
+    const { route, records } = await loadByNamespace(env, namespace);
+    const active = records
+      .filter((r) => {
+        if (r.superseded_by !== null) return false;
+        if (r.expires_at && Date.parse(r.expires_at) <= nowMs) return false;
+        const vf = Date.parse(r.valid_from);
+        const vt = r.valid_to ? Date.parse(r.valid_to) : Infinity;
+        if (nowMs < vf || nowMs >= vt) return false;
+        if (tag && !(Array.isArray(r.tags) && r.tags.map((t) => String(t).toLowerCase()).includes(tag))) {
+          return false;
+        }
+        if (query) {
+          const hay = [r.namespace, r.key, r.title, r.content, r.kind, ...(r.tags || [])]
+            .join(" ")
+            .toLowerCase();
+          if (!hay.includes(query)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => a.namespace.localeCompare(b.namespace) || a.key.localeCompare(b.key));
+
+    return {
+      result: {
+        schema: RECORD_SCHEMA,
+        route,
+        namespace,
+        count: active.length,
+        records: active,
+      },
+    };
+  }
+
+  if (toolName === "memory_get") {
+    const namespace = String(args.namespace || "").trim();
+    const memKey = String(args.mem_key || "").trim();
+    const addrErr = validateAddress(namespace, memKey);
+    if (addrErr) return { error: { code: -32602, message: `Invalid params: ${addrErr}` } };
+
+    if (!authed && !(isPublicNamespace(namespace) && publicReadOpen)) {
+      return {
+        error: {
+          code: -32001,
+          httpStatus: 401,
+          message: "Unauthorized: Bearer token required to read non-public namespaces.",
+        },
+      };
+    }
+
+    const includeHistory = Boolean(args.include_history);
+    const { route, records: chain } = await loadByNamespace(env, namespace, memKey);
+    const nowMs = Date.now();
+    const head = chain.find((r) => r.superseded_by === null) || null;
+    const activeHead =
+      head &&
+      (!head.expires_at || Date.parse(head.expires_at) > nowMs) &&
+      Date.parse(head.valid_from) <= nowMs &&
+      (!head.valid_to || Date.parse(head.valid_to) > nowMs)
+        ? head
+        : null;
+
+    if (includeHistory) {
+      return {
+        result: {
+          schema: RECORD_SCHEMA,
+          route,
+          address: `oam://${namespace}/${memKey}`,
+          active: activeHead,
+          history_count: chain.length,
+          history: chain,
+        },
+      };
+    }
+
+    return {
+      result: {
+        schema: RECORD_SCHEMA,
+        route,
+        address: `oam://${namespace}/${memKey}`,
+        found: Boolean(activeHead),
+        record: activeHead,
+      },
+    };
+  }
+
+  if (toolName === "memory_put") {
+    if (!authed) {
+      return {
+        error: {
+          code: -32001,
+          httpStatus: 401,
+          message: "Unauthorized: Bearer token required for memory_put.",
+        },
+      };
+    }
+
+    const namespace = String(args.namespace || "").trim();
+    const memKey = String(args.mem_key || "").trim();
+    const content = String(args.content || "").trim();
+    const addrErr = validateAddress(namespace, memKey);
+    if (addrErr) return { error: { code: -32602, message: `Invalid params: ${addrErr}` } };
+    if (!content) return { error: { code: -32602, message: "Invalid params: content is required." } };
+
+    const sourceAgent = args.source_agent ? String(args.source_agent).trim() : "";
+    let provenance;
+    if (args.provenance && typeof args.provenance === "object" && !Array.isArray(args.provenance)) {
+      provenance = {
+        actor:
+          args.provenance.actor ||
+          (sourceAgent ? (sourceAgent.includes(":") ? sourceAgent : `agent:${sourceAgent}`) : "agent:mcp"),
+        source: args.provenance.source || "mcp",
+        method: args.provenance.method || "explicit",
+        trust: args.provenance.trust || "verified",
+        session_id: args.provenance.session_id || null,
+      };
+    } else {
+      const provStr = typeof args.provenance === "string" ? args.provenance.trim() : "";
+      provenance = {
+        actor: sourceAgent
+          ? sourceAgent.includes(":")
+            ? sourceAgent
+            : `agent:${sourceAgent}`
+          : "agent:mcp",
+        source: provStr || "mcp",
+        method: "explicit",
+        trust: "verified",
+        session_id: null,
+      };
+    }
+
+    const citations = Array.isArray(args.citations)
+      ? args.citations
+          .map((c) => (typeof c === "string" ? { uri: c.trim() } : c))
+          .filter((c) => c && typeof c === "object" && String(c.uri || "").trim())
+      : [];
+
+    const payload = {
+      schema: RECORD_SCHEMA,
+      namespace,
+      key: memKey,
+      title: args.title ? String(args.title).trim() : deriveTitleFromContent(content, memKey),
+      content,
+      kind: args.kind || "fact",
+      tags: Array.isArray(args.tags) ? args.tags : [],
+      expires_at: args.expires_at ?? null,
+      provenance,
+      citations,
+    };
+
+    const { record, errors } = normalizeAndValidateRecord(payload);
+    if (errors.length > 0) {
+      return {
+        error: {
+          code: -32602,
+          message: `Invalid params: ${errors.join("; ")}`,
+          data: errors,
+        },
+      };
+    }
+
+    const saved = await saveByNamespace(env, record, true);
+    return {
+      result: {
+        ok: true,
+        route: saved.route,
+        address: `oam://${saved.record.namespace}/${saved.record.key}`,
+        record: saved.record,
+        superseded: saved.superseded,
+      },
+    };
+  }
+
+  return { error: { code: -32602, message: `Unknown tool: ${toolName}` } };
+}
+
+// ---------------------------------------------------------------------------
 // Auth, Encoding & HTTP Utilities
 // ---------------------------------------------------------------------------
 
+function getConfiguredApiToken(env) {
+  return env.OAM_API_TOKEN || env.API_KEY || "";
+}
+
 function isAuthorized(request, env) {
-  if (!env.OAM_API_TOKEN) return true;
+  const configured = getConfiguredApiToken(env);
+  if (!configured) return true;
   const header = request.headers.get("Authorization") || "";
   if (!header.startsWith("Bearer ")) return false;
   const token = header.slice(7).trim();
-  return timingSafeEqual(token, String(env.OAM_API_TOKEN));
+  return timingSafeEqual(token, String(configured));
 }
 
 function timingSafeEqual(a, b) {
