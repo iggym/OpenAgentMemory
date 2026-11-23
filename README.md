@@ -2,10 +2,83 @@
 
 **Portable, bitemporal, Git-native memory for AI agents.**
 
+> **Live Website & Interactive Console:** **[https://iggym.github.io/OpenAgentMemory/](https://iggym.github.io/OpenAgentMemory/)**  
+> Launch in your browser right now—sample memories are pre-seeded in `localStorage` so you can time-travel, supersede, check context budgets, and export `AGENTS.md` / `CLAUDE.md` / `.mdc` / `GEMINI.md` / Copilot rules in under 3 minutes with zero accounts or API keys.
+
 - **Zero paid dependencies** — runs on browser `localStorage`, free GitHub repos/Gists, GitHub Pages, and Cloudflare Workers Free tier.
 - **Zero build tools & zero frameworks** — plain vanilla HTML, CSS, and modern JavaScript (no `package.json`, `npm`, React, TypeScript, or Vite).
 - **Bitemporal & auditable** — tracks domain validity (`valid_from`, `valid_to`), system recording time (`recorded_at`), retention TTL (`expires_at`), immutable `superseded_by` version chains, `provenance`, and `citations`.
-- **Fail-closed namespace routing** — `public/*` and `shared/*` route to a GitHub Gist; `private/*` and every unrecognized namespace route exclusively to a private GitHub repository.
+- **Fail-closed namespace routing** — `public/*` and `shared/*` route to a GitHub Gist; `private/*` and every unrecognized namespace route exclusively to a private GitHub repository (or authenticated Cloudflare D1/KV backend).
+- **Multi-agent ready** — one-click compiler for 5 agent formats + live Context-Budget & Bloat Meter + lightweight HTTP `POST /mcp` JSON-RPC 2.0 server.
+
+---
+
+## What, Why & How (Visual Guide)
+
+### What is OpenAgentMemory?
+
+![What is OpenAgentMemory — Portable, Bitemporal, Git-Native Memory for AI Agents](./assets/oam-what.jpg)
+
+### Why OpenAgentMemory?
+
+![Why OpenAgentMemory — Solving Fragile, Vendor-Locked, and Bloated AI Agent Memory](./assets/oam-why.jpg)
+
+### How OpenAgentMemory Works
+
+![How OpenAgentMemory Works — Capture, oam.record.v1 Engine, Fail-Closed Router, and Multi-Agent Delivery](./assets/oam-how.jpg)
+
+---
+
+## Architecture & Lifecycle Diagrams
+
+### End-to-End Architecture & Fail-Closed Routing
+
+```mermaid
+flowchart LR
+  subgraph Clients["1. Clients & Capture"]
+    UI["Web Console (index.html)<br/>Browser localStorage"]
+    Agents["Coding Agents<br/>Claude · Cursor · Gemini · Copilot"]
+    CLI["CLI Sync<br/>examples/sync-agents-md.mjs"]
+  end
+
+  subgraph Engine["2. oam.record.v1 & Router (worker.js)"]
+    Spec["oam.record.v1 Validator<br/>Bitemporal + Supersession"]
+    Router{"Fail-Closed<br/>Namespace Router"}
+    MCP["POST /mcp<br/>memory_search · memory_get · memory_put"]
+  end
+
+  subgraph Storage["3. Zero-Cost Storage Backends"]
+    Gist["GitHub Gist<br/>(Public or Secret/Unlisted)<br/>public/* & shared/* only"]
+    Repo["Private GitHub Repo<br/>memories/{namespace}/{key}.json<br/>private/* & default (fail-closed)"]
+  end
+
+  subgraph Delivery["4. Multi-Agent Compiler & Budget Meter"]
+    Meter["Live Context-Budget Meter<br/>Healthy: under 150 lines / 20 KB"]
+    Exports["AGENTS.md · CLAUDE.md<br/>.cursor/rules/oam-memory.mdc<br/>GEMINI.md · copilot-instructions.md"]
+  end
+
+  UI --> Spec
+  Agents --> MCP --> Spec
+  CLI --> Repo
+  Spec --> Router
+  Router -->|"public/* · shared/*"| Gist
+  Router -->|"private/* · unknown (fail-closed)"| Repo
+  UI --> Meter --> Exports
+```
+
+### Bitemporal Validity & Immutable `superseded_by` Versioning
+
+```mermaid
+flowchart LR
+  V1["v1 Record (oam_1)<br/>valid_from: 2026-01-01<br/>valid_to: 2026-06-01 (closed)<br/>superseded_by: oam_2<br/>Status: Historical"]
+  V2["v2 Record (oam_2)<br/>valid_from: 2026-06-01<br/>valid_to: null (open)<br/>supersedes: oam_1<br/>superseded_by: null (HEAD)"]
+  TTL["Temporary Context Record<br/>valid_from: 2026-11-20<br/>expires_at: 2026-12-04<br/>Auto-hidden once TTL elapses"]
+
+  V1 -->|"superseded_by"| V2
+  V2 -.->|"Active Recall & AGENTS.md"| Active["Surfaced to Agents"]
+  V1 -.->|"Time-Travel (--as-of 2026-03-01)"| Audit["Historical Audit Recall"]
+  TTL -.->|"After expires_at"| Pruned["Excluded from Active Recall"]
+```
 
 ---
 
@@ -14,8 +87,9 @@
 | File | Purpose |
 | :--- | :--- |
 | [`SPEC.md`](./SPEC.md) | Complete `oam.record.v1` specification (addressing, bitemporal queries, supersession, routing, storage layout, exports, HTTP API). |
-| [`index.html`](./index.html) | Single-file web application for GitHub Pages: embedded spec overview, 3-minute quickstart, live memory console, time-travel queries, Private GitHub Repo & Cloudflare Worker backends, `AGENTS.md` + JSON exports. |
-| [`worker.js`](./worker.js) | Reference zero-dependency Cloudflare Worker routing `public/*` & `shared/*` to a GitHub Gist and `private/*` (fail-closed default) to a Private GitHub Repository. |
+| [`index.html`](./index.html) | Single-file web application for GitHub Pages: embedded spec overview, 3-minute quickstart, live memory console, time-travel queries, Multi-Agent Compiler (5 formats), Live Context-Budget Meter, Private GitHub Repo & Cloudflare Worker backends, and JSON import/export. |
+| [`worker.js`](./worker.js) | Reference zero-dependency Cloudflare Worker with REST API + HTTP `POST /mcp` JSON-RPC 2.0 tools routing `public/*` & `shared/*` to a GitHub Gist and `private/*` (fail-closed default) to a Private GitHub Repository. |
+| [`assets/`](./assets/) | What / Why / How editorial infographics (`oam-what.jpg`, `oam-why.jpg`, `oam-how.jpg`). |
 | [`examples/sample-memories.json`](./examples/sample-memories.json) | Sample `oam.bundle.v1` dataset covering `public/*`, `shared/*`, `private/*`, supersession chains, and TTL expiration. |
 | [`examples/sync-agents-md.mjs`](./examples/sync-agents-md.mjs) | Zero-dependency Node.js script that reads local `memories.json` or fetches a remote endpoint and updates the `<!-- OAM:START -->` block in `AGENTS.md`. |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Zero-cost / zero-build philosophy, namespace privacy rules, and adapter contribution guidelines. |
@@ -26,14 +100,14 @@
 
 ## (a) Instant Browser Use (Under 3 Minutes — No Accounts or Keys)
 
-1. **Open `index.html`** directly in any modern browser:
+1. **Open the console** directly in any modern browser:
+   - **Hosted (live):** open **[https://iggym.github.io/OpenAgentMemory/](https://iggym.github.io/OpenAgentMemory/)**.
    - **Locally:** clone or download this repository and double-click `index.html` (or serve it with `python3 -m http.server 8000`).
-   - **Hosted:** open your GitHub Pages URL (see section (c) below).
 2. **Explore immediately:** On initial load, `index.html` automatically seeds sample `oam.record.v1` memories into `localStorage` (`oam.records.v1`), including active records, a `superseded_by` version chain, a historical bitemporal record, and a record with an `expires_at` TTL.
 3. **Try core workflows:**
-   - Click **6 mo ago** in the *Valid At* bar to see bitemporal time-travel rewind memories to their historically valid versions.
+   - Click **Try 6 mo ago** to see bitemporal time-travel rewind memories to their historically valid versions.
    - Select any memory and click **Supersede** to create a linked `v(n+1)` version while preserving lineage.
-   - Click **Export / Import** to copy or download a clean **`AGENTS.md`** (Markdown) for your coding agents or a portable **`oam-bundle.json`**.
+   - Use the **Multi-Agent Compiler** (with the live Context-Budget Meter) to copy or download **`AGENTS.md`**, **`CLAUDE.md`**, **`.cursor/rules/oam-memory.mdc`**, **`GEMINI.md`**, or **`.github/copilot-instructions.md`**.
 
 ---
 
