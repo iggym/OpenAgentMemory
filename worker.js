@@ -9,6 +9,10 @@
  *   - public, public/*, shared, shared/*  -> GitHub Gist (GIST_ID)
  *   - private, private/*, and ALL others  -> Private GitHub Repo (GITHUB_REPO)
  *
+ * Security Note: GitHub Gists only have public and secret visibility (secret
+ * Gists are unlisted, NOT private). Never route private/* data to a Gist; use
+ * a Private GitHub Repository or an authenticated Cloudflare backend (D1/KV).
+ *
  * Required / Optional Environment Variables (Cloudflare Secrets & Vars):
  *   GITHUB_TOKEN     : GitHub PAT (fallback for both Gist and Repo)
  *   GIST_TOKEN       : Optional PAT with `gist` scope (overrides GITHUB_TOKEN for Gist)
@@ -610,7 +614,10 @@ async function extractGistFileJson(fileObj, token) {
   let raw = fileObj.content || "";
   if (fileObj.truncated && fileObj.raw_url) {
     const rawRes = await fetch(fileObj.raw_url, { headers: githubHeaders(token) });
-    if (rawRes.ok) raw = await rawRes.text();
+    if (!rawRes.ok) {
+      throw await githubApiError("Failed to fetch truncated Gist file", rawRes);
+    }
+    raw = await rawRes.text();
   }
   return JSON.parse(raw);
 }
@@ -776,7 +783,13 @@ async function readRepoFile(env, filePath) {
   }
   const data = await res.json();
   const text = fromBase64Utf8(data.content || "");
-  return { sha: data.sha, json: JSON.parse(text) };
+  try {
+    return { sha: data.sha, json: JSON.parse(text) };
+  } catch {
+    const err = new Error(`Malformed JSON in ${repo}/${filePath}`);
+    err.status = 502;
+    throw err;
+  }
 }
 
 async function writeRepoFile(env, filePath, jsonObj, message, existingSha = null) {
@@ -1054,7 +1067,21 @@ async function githubApiError(prefix, res) {
   } catch {
     // ignore parse error
   }
-  const err = new Error(`${prefix} (${detail})`);
+  let hint = "";
+  if (res.status === 401) {
+    hint = " — check GITHUB_TOKEN / REPO_TOKEN / GIST_TOKEN";
+  } else if (res.status === 403) {
+    const remaining = res.headers && res.headers.get("x-ratelimit-remaining");
+    hint =
+      remaining === "0"
+        ? " — GitHub API rate limit exceeded"
+        : " — verify token scope (Contents: Read & Write for repo, gist scope for Gist)";
+  } else if (res.status === 404) {
+    hint = " — verify GITHUB_REPO, GITHUB_BRANCH, or GIST_ID exists and token has access";
+  } else if (res.status === 409) {
+    hint = " — concurrent update conflict; retry request";
+  }
+  const err = new Error(`${prefix} (${detail}${hint})`);
   err.status = res.status >= 400 && res.status < 600 ? res.status : 502;
   return err;
 }

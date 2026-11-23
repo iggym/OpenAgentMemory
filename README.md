@@ -102,8 +102,10 @@ Because `index.html` requires **zero build step**, GitHub Pages serves it direct
 
 Use `worker.js` when you want an HTTP API for CLI scripts, coding agents, or cross-device sync that automatically separates visibility by namespace:
 
-- `public/*` and `shared/*` → **GitHub Gist**
-- `private/*` and all unrecognized namespaces → **Private GitHub Repository** (fail-closed)
+- `public/*` and `shared/*` → **GitHub Gist** (public or secret/unlisted—non-sensitive content only)
+- `private/*` and all unrecognized namespaces → **Private GitHub Repository** (or an authenticated Cloudflare backend such as D1/KV)
+
+> **Security Note on GitHub Gists:** GitHub Gists only support **public** and **secret** visibility—there is no truly private Gist. A *secret* Gist is only **unlisted** (readable by anyone with the URL). Never store sensitive or private memories in a secret Gist; `worker.js` enforces fail-closed routing so `private/*` and unknown namespaces always go to your Private GitHub Repository (or a private Cloudflare D1/KV adapter).
 
 ### Deploy Without `npm` (Cloudflare Dashboard — Free Tier)
 

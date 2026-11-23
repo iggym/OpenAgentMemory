@@ -206,11 +206,29 @@ async function loadPayload(args) {
   if (args.url) {
     const headers = { Accept: "application/json" };
     if (args.token) headers.Authorization = `Bearer ${args.token}`;
-    const res = await fetch(args.url, { headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch ${args.url}: HTTP ${res.status} ${res.statusText}`);
+    let res;
+    try {
+      res = await fetch(args.url, { headers });
+    } catch (err) {
+      throw new Error(`Network error fetching ${args.url}: ${err.message}`);
     }
-    return { payload: await res.json(), sourceLabel: args.url };
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      const hint =
+        res.status === 401
+          ? " (pass --token or set OAM_API_TOKEN)"
+          : res.status === 403
+          ? " (check token permissions or rate limit)"
+          : "";
+      throw new Error(
+        `Failed to fetch ${args.url}: HTTP ${res.status} ${res.statusText}${hint}${detail ? ` — ${detail.slice(0, 160)}` : ""}`
+      );
+    }
+    try {
+      return { payload: await res.json(), sourceLabel: args.url };
+    } catch {
+      throw new Error(`Response from ${args.url} was not valid JSON.`);
+    }
   }
 
   let inputPath = args.input;

@@ -799,6 +799,53 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* 3-Minute Onboarding Strip */
+    .onboard-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 11px 15px;
+      margin-bottom: 16px;
+      background: var(--surface);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+    }
+    .onboard-steps {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: var(--ink-muted);
+    }
+    .onboard-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .onboard-num {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .onboard-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
     /* Collapsible Open-Source & Adapters Panel */
     .oss-panel {
       margin-top: 24px;
@@ -964,6 +1011,20 @@
 
     <!-- VIEW 1: MEMORY CONSOLE -->
     <section class="view-section active" id="view-console" aria-label="Memory Console">
+      <div class="onboard-strip" id="onboard-strip" role="region" aria-label="3-minute quickstart bar">
+        <div class="onboard-steps">
+          <span class="onboard-step"><span class="onboard-num">1</span> Sample memories seeded locally</span>
+          <span class="onboard-step"><span class="onboard-num">2</span> Try time-travel or supersede a record</span>
+          <span class="onboard-step"><span class="onboard-num">3</span> Export a ready-to-use <code>AGENTS.md</code></span>
+        </div>
+        <div class="onboard-actions">
+          <button type="button" class="btn btn-sm" id="btn-onboard-timetravel">Try 6 mo ago</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-onboard-copy-agents">Copy AGENTS.md Snippet</button>
+          <button type="button" class="btn btn-sm" id="btn-onboard-preview-agents">Download / Preview</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="btn-onboard-dismiss" title="Hide onboarding bar" aria-label="Dismiss onboarding bar">×</button>
+        </div>
+      </div>
+
       <div class="console-grid">
         <!-- Left Pane: Explorer & Bitemporal Query -->
         <div class="panel">
@@ -1135,8 +1196,15 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           <h2>Fail-Closed Namespace Routing</h2>
           <p>
             Routing uses an explicit allowlist for public/shared backends. Any typo or unrecognized namespace defaults
-            to the private GitHub repository so sensitive data never leaks to a Gist.
+            to private storage so sensitive data never leaks to a Gist.
           </p>
+          <div class="callout callout-amber" style="margin-bottom:12px;">
+            <strong>GitHub Gist Visibility:</strong> GitHub Gists only offer <strong>public</strong> and
+            <strong>secret</strong> visibility—there is no private Gist. A <em>secret</em> Gist is merely
+            <strong>unlisted</strong> (readable by anyone with the URL). Therefore, <code>private/*</code> namespaces
+            and all unknown namespaces MUST use a <strong>Private GitHub Repository</strong> or an authenticated
+            <strong>Cloudflare backend</strong> (such as D1 or KV behind a Worker).
+          </div>
           <table class="spec-table">
             <thead>
               <tr><th>Namespace Pattern</th><th>Backend Target</th><th>Storage Format</th></tr>
@@ -1144,17 +1212,17 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
             <tbody>
               <tr>
                 <td><code>public</code>, <code>public/*</code></td>
-                <td><span class="badge badge-route-gist">GitHub Gist</span></td>
+                <td><span class="badge badge-route-gist">GitHub Gist (public)</span></td>
                 <td><code>oam__public__&lt;sub&gt;--&lt;key&gt;.json</code></td>
               </tr>
               <tr>
                 <td><code>shared</code>, <code>shared/*</code></td>
-                <td><span class="badge badge-route-gist">GitHub Gist</span></td>
+                <td><span class="badge badge-route-gist">GitHub Gist (secret/unlisted)</span></td>
                 <td><code>oam__shared__&lt;sub&gt;--&lt;key&gt;.json</code></td>
               </tr>
               <tr>
                 <td><code>private</code>, <code>private/*</code>, <em>all others</em></td>
-                <td><span class="badge badge-route-repo">Private GitHub Repo</span></td>
+                <td><span class="badge badge-route-repo">Private GitHub Repo / Cloudflare D1·KV</span></td>
                 <td><code>memories/&lt;namespace&gt;/&lt;key&gt;.json</code> + <code>memories/index.json</code></td>
               </tr>
             </tbody>
@@ -1430,7 +1498,8 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         <div class="backend-pane" id="bpane-worker" style="display:none;">
           <div class="callout">
             Connect to your deployed <code>worker.js</code> instance. Automatically routes
-            <code>public/*</code> &amp; <code>shared/*</code> to GitHub Gist and <code>private/*</code> to your private repo.
+            <code>public/*</code> &amp; <code>shared/*</code> to a GitHub Gist (public or secret/unlisted—non-sensitive only)
+            and <code>private/*</code> to your Private GitHub Repository or authenticated Cloudflare backend (D1/KV).
           </div>
           <div class="form-grid" style="margin-top:12px;">
             <div class="field full">
@@ -1655,6 +1724,17 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
       function fmtShortDate(iso) {
         if (!iso) return "open";
         return String(iso).slice(0, 10);
+      }
+
+      function safeVersion(v) {
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 1 ? Math.trunc(n) : 1;
+      }
+
+      function safeConfidencePct(c) {
+        const n = Number(c ?? 1);
+        if (!Number.isFinite(n)) return 100;
+        return Math.max(0, Math.min(100, Math.round(n * 100)));
       }
 
       function validateRecord(obj) {
@@ -2033,6 +2113,58 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         updateBackendIndicator();
       }
 
+      // --- Shared Network & API Error Helpers ---
+      async function safeFetch(url, opts, label) {
+        try {
+          return await fetch(url, opts);
+        } catch (err) {
+          throw new Error(
+            `Could not reach ${label} (${err.message || "network error"}). Check your internet connection, URL, and CORS settings.`
+          );
+        }
+      }
+
+      async function formatGitHubApiError(action, res) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body && body.message ? body.message : res.statusText || "Request failed";
+        if (res.status === 401) {
+          return new Error(`${action}: GitHub authentication failed (401 — ${msg}). Verify your PAT is valid and not expired.`);
+        }
+        if (res.status === 403) {
+          const remaining = res.headers && res.headers.get("x-ratelimit-remaining");
+          if (remaining === "0") {
+            return new Error(`${action}: GitHub API rate limit exceeded (403). Wait for the rate-limit window to reset.`);
+          }
+          return new Error(
+            `${action}: GitHub permission denied (403 — ${msg}). Ensure your Fine-Grained PAT has "Contents: Read and write" on this repo.`
+          );
+        }
+        if (res.status === 404) {
+          return new Error(
+            `${action}: Repository, branch, or path not found (404 — ${msg}). Check "owner/repo", branch name, and that the repo has an initial commit.`
+          );
+        }
+        if (res.status === 409) {
+          return new Error(`${action}: File changed remotely (409 conflict). Click Sync / Pull from Repo and retry.`);
+        }
+        return new Error(`${action}: GitHub HTTP ${res.status} (${msg}).`);
+      }
+
+      async function formatWorkerApiError(action, res) {
+        const data = await res.json().catch(() => ({}));
+        const baseMsg = data && data.error ? data.error : res.statusText || `HTTP ${res.status}`;
+        const details = Array.isArray(data && data.details) && data.details.length > 0
+          ? ` — ${data.details.join("; ")}`
+          : "";
+        if (res.status === 401) {
+          return new Error(`${action}: Unauthorized (401). Check your OAM_API_TOKEN bearer token.`);
+        }
+        if (res.status === 503) {
+          return new Error(`${action}: Worker backend not configured (503 — ${baseMsg}). Verify GIST_ID, GITHUB_REPO, and tokens in Cloudflare settings.`);
+        }
+        return new Error(`${action}: Worker HTTP ${res.status} (${baseMsg}${details}).`);
+      }
+
       // --- Private GitHub Repo Client ---
       function ghHeaders(token) {
         return {
@@ -2042,20 +2174,29 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         };
       }
 
+      function validateRepoSlug(repo) {
+        if (!/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/.test(repo)) {
+          throw new Error('Repository must be in "owner/repo" format (for example, "your-user/my-agent-memory").');
+        }
+      }
+
       async function ghReadFile(repo, branch, token, path) {
+        validateRepoSlug(repo);
         const encPath = path.split("/").map(encodeURIComponent).join("/");
         const url = `https://api.github.com/repos/${repo}/contents/${encPath}?ref=${encodeURIComponent(branch)}`;
-        const res = await fetch(url, { headers: ghHeaders(token) });
+        const res = await safeFetch(url, { headers: ghHeaders(token) }, `GitHub API (${repo})`);
         if (res.status === 404) return null;
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.message || `GitHub HTTP ${res.status}`);
-        }
+        if (!res.ok) throw await formatGitHubApiError(`Read ${path}`, res);
         const data = await res.json();
-        return { sha: data.sha, json: JSON.parse(fromBase64Utf8(data.content || "")) };
+        try {
+          return { sha: data.sha, json: JSON.parse(fromBase64Utf8(data.content || "")) };
+        } catch {
+          throw new Error(`Malformed JSON in ${repo}/${path} on branch "${branch}".`);
+        }
       }
 
       async function ghWriteFile(repo, branch, token, path, jsonObj, message, sha = null) {
+        validateRepoSlug(repo);
         const encPath = path.split("/").map(encodeURIComponent).join("/");
         const url = `https://api.github.com/repos/${repo}/contents/${encPath}`;
         const body = {
@@ -2064,15 +2205,16 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           branch,
         };
         if (sha) body.sha = sha;
-        const res = await fetch(url, {
-          method: "PUT",
-          headers: { ...ghHeaders(token), "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || `GitHub write failed (${res.status})`);
-        }
+        const res = await safeFetch(
+          url,
+          {
+            method: "PUT",
+            headers: { ...ghHeaders(token), "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+          `GitHub API (${repo})`
+        );
+        if (!res.ok) throw await formatGitHubApiError(`Write ${path}`, res);
         return res.json();
       }
 
@@ -2085,6 +2227,7 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
       }
 
       async function ghSyncKeyAndIndex(repo, branch, token, namespace, key, allRecords, commitMsg) {
+        validateRepoSlug(repo);
         const chain = allRecords.filter((r) => r.namespace === namespace && r.key === key);
         const chainPath = `memories/${namespace}/${key}.json`;
         const existingChain = await ghReadFile(repo, branch, token, chainPath);
@@ -2102,11 +2245,16 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           );
         } else if (existingChain) {
           const encPath = chainPath.split("/").map(encodeURIComponent).join("/");
-          await fetch(`https://api.github.com/repos/${repo}/contents/${encPath}`, {
-            method: "DELETE",
-            headers: { ...ghHeaders(token), "Content-Type": "application/json" },
-            body: JSON.stringify({ message: commitMsg, sha: existingChain.sha, branch }),
-          });
+          const delRes = await safeFetch(
+            `https://api.github.com/repos/${repo}/contents/${encPath}`,
+            {
+              method: "DELETE",
+              headers: { ...ghHeaders(token), "Content-Type": "application/json" },
+              body: JSON.stringify({ message: commitMsg, sha: existingChain.sha, branch }),
+            },
+            `GitHub API (${repo})`
+          );
+          if (!delRes.ok) throw await formatGitHubApiError(`Delete ${chainPath}`, delRes);
         }
 
         const existingIdx = await ghReadFile(repo, branch, token, "memories/index.json");
@@ -2122,6 +2270,7 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
       }
 
       async function ghPushAllRecords(repo, branch, token, records) {
+        validateRepoSlug(repo);
         const grouped = new Map();
         for (const r of records) {
           const k = `${r.namespace}::${r.key}`;
@@ -2156,6 +2305,12 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
       }
 
       // --- Cloudflare Worker Client ---
+      function validateWorkerUrl(baseUrl) {
+        if (!/^https?:\/\/.+/i.test(baseUrl)) {
+          throw new Error('Worker URL must start with "https://" (or "http://" for local testing).');
+        }
+      }
+
       function workerHeaders(token) {
         const h = { "Content-Type": "application/json" };
         if (token) h.Authorization = `Bearer ${token}`;
@@ -2163,29 +2318,39 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
       }
 
       async function workerFetchRecords(baseUrl, token) {
+        validateWorkerUrl(baseUrl);
         const cleanUrl = baseUrl.replace(/\/+$/, "");
-        const res = await fetch(
+        const res = await safeFetch(
           `${cleanUrl}/records?include_superseded=true&include_expired=true&as_of=${encodeURIComponent(new Date().toISOString())}`,
-          { headers: workerHeaders(token) }
+          { headers: workerHeaders(token) },
+          `Worker (${cleanUrl})`
         );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `Worker HTTP ${res.status}`);
-        return Array.isArray(data.records) ? data.records : [];
+        if (!res.ok) throw await formatWorkerApiError("Fetch records", res);
+        const data = await res.json().catch(() => null);
+        if (!data || !Array.isArray(data.records)) {
+          throw new Error("Worker returned an unexpected JSON payload (missing records array).");
+        }
+        return data.records;
       }
 
       async function workerSaveRecord(baseUrl, token, record, closePreviousValidTo) {
+        validateWorkerUrl(baseUrl);
         const cleanUrl = baseUrl.replace(/\/+$/, "");
-        const res = await fetch(`${cleanUrl}/records`, {
-          method: "POST",
-          headers: workerHeaders(token),
-          body: JSON.stringify({ ...record, close_previous_valid_to: closePreviousValidTo }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `Worker HTTP ${res.status}`);
-        return data;
+        const res = await safeFetch(
+          `${cleanUrl}/records`,
+          {
+            method: "POST",
+            headers: workerHeaders(token),
+            body: JSON.stringify({ ...record, close_previous_valid_to: closePreviousValidTo }),
+          },
+          `Worker (${cleanUrl})`
+        );
+        if (!res.ok) throw await formatWorkerApiError("Save record", res);
+        return res.json();
       }
 
       async function workerDeleteOrExpire(baseUrl, token, record, mode) {
+        validateWorkerUrl(baseUrl);
         const cleanUrl = baseUrl.replace(/\/+$/, "");
         const qs = new URLSearchParams({
           namespace: record.namespace,
@@ -2193,13 +2358,16 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           id: record.id,
           mode,
         });
-        const res = await fetch(`${cleanUrl}/records?${qs.toString()}`, {
-          method: "DELETE",
-          headers: workerHeaders(token),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `Worker HTTP ${res.status}`);
-        return data;
+        const res = await safeFetch(
+          `${cleanUrl}/records?${qs.toString()}`,
+          {
+            method: "DELETE",
+            headers: workerHeaders(token),
+          },
+          `Worker (${cleanUrl})`
+        );
+        if (!res.ok) throw await formatWorkerApiError(mode === "hard" ? "Delete record" : "Expire record", res);
+        return res.json();
       }
 
       // ---------------------------------------------------------------------
@@ -2534,17 +2702,17 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
                 <div class="record-top">
                   <span class="record-address">oam://${escapeHtml(rec.namespace)}/${escapeHtml(rec.key)}</span>
                   <div style="display:flex; gap:5px; align-items:center;">
-                    <span class="badge ${routeCls}">${routeLabel}</span>
-                    <span class="badge ${status.badgeClass}">${status.label}</span>
+                    <span class="badge ${routeCls}">${escapeHtml(routeLabel)}</span>
+                    <span class="badge ${status.badgeClass}">${escapeHtml(status.label)}</span>
                   </div>
                 </div>
                 <div class="record-title">${escapeHtml(rec.title)}</div>
                 <p class="record-snippet">${escapeHtml(rec.content)}</p>
                 <div class="record-meta-row">
                   <span class="badge badge-tag">${escapeHtml(rec.kind || "fact")}</span>
-                  <span class="mono">v${rec.version || 1}</span>
-                  <span>· valid ${fmtShortDate(rec.valid_from)} → ${fmtShortDate(rec.valid_to)}</span>
-                  ${rec.expires_at ? `<span>· TTL ${fmtShortDate(rec.expires_at)}</span>` : ""}
+                  <span class="mono">v${safeVersion(rec.version)}</span>
+                  <span>· valid ${escapeHtml(fmtShortDate(rec.valid_from))} → ${escapeHtml(fmtShortDate(rec.valid_to))}</span>
+                  ${rec.expires_at ? `<span>· TTL ${escapeHtml(fmtShortDate(rec.expires_at))}</span>` : ""}
                   ${citCount > 0 ? `<span>· ${citCount} citation${citCount === 1 ? "" : "s"}</span>` : ""}
                 </div>
               </div>
@@ -2605,7 +2773,7 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           }
         });
         document.getElementById("insp-delete").addEventListener("click", async () => {
-          if (!confirm(`Permanently delete version v${rec.version || 1} of ${address}?`)) return;
+          if (!confirm(`Permanently delete version v${safeVersion(rec.version)} of ${address}?`)) return;
           try {
             await deleteRecord(rec);
             state.selectedId = null;
@@ -2659,10 +2827,10 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
             return `
               <div class="lineage-item ${isCur ? "current" : ""}" data-lineage-id="${escapeHtml(v.id)}">
                 <div>
-                  <strong class="mono">v${v.version || 1}</strong>
+                  <strong class="mono">v${safeVersion(v.version)}</strong>
                   <span style="margin-left:6px;">${escapeHtml(v.title)}</span>
                   <div class="mono" style="font-size:11px; color:var(--ink-faint);">
-                    ${escapeHtml(v.id)} · valid ${fmtShortDate(v.valid_from)} → ${fmtShortDate(v.valid_to)}
+                    ${escapeHtml(v.id)} · valid ${escapeHtml(fmtShortDate(v.valid_from))} → ${escapeHtml(fmtShortDate(v.valid_to))}
                   </div>
                 </div>
                 ${headLabel}
@@ -2678,8 +2846,8 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
               <span class="badge ${route === "gist" ? "badge-route-gist" : "badge-route-repo"}">
                 Route: ${route === "gist" ? "GitHub Gist" : "Private Repo"}
               </span>
-              <span class="badge ${status.badgeClass}">${status.label}</span>
-              <span class="badge badge-tag">${escapeHtml(rec.kind || "fact")} · v${rec.version || 1}</span>
+              <span class="badge ${status.badgeClass}">${escapeHtml(status.label)}</span>
+              <span class="badge badge-tag">${escapeHtml(rec.kind || "fact")} · v${safeVersion(rec.version)}</span>
             </div>
           </div>
 
@@ -2716,7 +2884,7 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
             </div>
             <div class="meta-cell">
               <div class="meta-cell-label">Trust / Method / Confidence</div>
-              <div class="meta-cell-value">${escapeHtml(rec.provenance?.trust || "verified")} · ${escapeHtml(rec.provenance?.method || "explicit")} · ${Math.round((rec.confidence ?? 1) * 100)}%</div>
+              <div class="meta-cell-value">${escapeHtml(rec.provenance?.trust || "verified")} · ${escapeHtml(rec.provenance?.method || "explicit")} · ${safeConfidencePct(rec.confidence)}%</div>
             </div>
             <div class="meta-cell">
               <div class="meta-cell-label">Record ID</div>
@@ -2820,7 +2988,7 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         if (mode === "supersede" && baseRecord) {
           document.getElementById("editor-title").textContent = `Supersede oam://${baseRecord.namespace}/${baseRecord.key}`;
           banner.style.display = "block";
-          banner.innerHTML = `Creating <strong>v${(baseRecord.version || 1) + 1}</strong> superseding <code>${escapeHtml(baseRecord.id)}</code>. The prior version remains preserved in lineage.`;
+          banner.innerHTML = `Creating <strong>v${safeVersion(baseRecord.version) + 1}</strong> superseding <code>${escapeHtml(baseRecord.id)}</code>. The prior version remains preserved in lineage.`;
           closePrevWrap.style.display = "flex";
           document.getElementById("f-close-prev").checked = true;
 
@@ -3162,55 +3330,84 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           remember: document.getElementById("gh-remember").checked,
         });
 
-        document.getElementById("btn-gh-test").addEventListener("click", async () => {
+        document.getElementById("btn-gh-test").addEventListener("click", async (e) => {
+          const btn = e.currentTarget;
           const { repo, token } = readGhInputs();
           const status = document.getElementById("gh-status");
           if (!repo || !token) {
             status.innerHTML = `<div class="callout callout-danger">Enter both repository (owner/repo) and PAT.</div>`;
             return;
           }
+          btn.disabled = true;
           status.innerHTML = `<div class="callout">Testing GitHub API access...</div>`;
           try {
-            const res = await fetch(`https://api.github.com/repos/${repo}`, { headers: ghHeaders(token) });
+            validateRepoSlug(repo);
+            const res = await safeFetch(`https://api.github.com/repos/${repo}`, { headers: ghHeaders(token) }, `GitHub API (${repo})`);
+            if (!res.ok) throw await formatGitHubApiError("Test connection", res);
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
             status.innerHTML = `<div class="callout callout-accent">Connected to <strong>${escapeHtml(data.full_name)}</strong> (${data.private ? "Private" : "Public"} repo, default branch: <code>${escapeHtml(data.default_branch)}</code>).</div>`;
           } catch (err) {
             status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          } finally {
+            btn.disabled = false;
           }
         });
 
-        document.getElementById("btn-gh-pull").addEventListener("click", async () => {
+        document.getElementById("btn-gh-pull").addEventListener("click", async (e) => {
+          const btn = e.currentTarget;
           const { repo, branch, token } = readGhInputs();
           const status = document.getElementById("gh-status");
+          if (!repo || !token) {
+            status.innerHTML = `<div class="callout callout-danger">Enter both repository (owner/repo) and PAT before pulling.</div>`;
+            return;
+          }
+          btn.disabled = true;
+          status.innerHTML = `<div class="callout">Pulling memories/index.json from ${escapeHtml(repo)}...</div>`;
           try {
             const recs = await ghPullAll(repo, branch, token);
             state.records = recs;
             saveLocalRecords(recs);
             state.selectedId = null;
             renderAll();
-            status.innerHTML = `<div class="callout callout-accent">Pulled <strong>${recs.length}</strong> records from <code>${escapeHtml(repo)}</code>.</div>`;
+            status.innerHTML = `<div class="callout callout-accent">Pulled <strong>${recs.length}</strong> record(s) from <code>${escapeHtml(repo)}</code>${recs.length === 0 ? " (no memories/index.json yet — push to initialize)" : ""}.</div>`;
           } catch (err) {
             status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          } finally {
+            btn.disabled = false;
           }
         });
 
-        document.getElementById("btn-gh-push").addEventListener("click", async () => {
+        document.getElementById("btn-gh-push").addEventListener("click", async (e) => {
+          const btn = e.currentTarget;
           const { repo, branch, token } = readGhInputs();
           const status = document.getElementById("gh-status");
+          if (!repo || !token) {
+            status.innerHTML = `<div class="callout callout-danger">Enter both repository (owner/repo) and PAT before pushing.</div>`;
+            return;
+          }
+          btn.disabled = true;
           status.innerHTML = `<div class="callout">Pushing ${state.records.length} records to ${escapeHtml(repo)}...</div>`;
           try {
             await ghPushAllRecords(repo, branch, token, state.records);
             status.innerHTML = `<div class="callout callout-accent">Successfully pushed all <strong>${state.records.length}</strong> records to <code>memories/</code>.</div>`;
           } catch (err) {
             status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          } finally {
+            btn.disabled = false;
           }
         });
 
         document.getElementById("btn-use-github").addEventListener("click", () => {
           const cfg = readGhInputs();
+          const status = document.getElementById("gh-status");
           if (!cfg.repo || !cfg.token) {
-            document.getElementById("gh-status").innerHTML = `<div class="callout callout-danger">Repository and PAT are required.</div>`;
+            status.innerHTML = `<div class="callout callout-danger">Repository and PAT are required.</div>`;
+            return;
+          }
+          try {
+            validateRepoSlug(cfg.repo);
+          } catch (err) {
+            status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
             return;
           }
           state.backend.mode = "github";
@@ -3227,43 +3424,67 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           remember: document.getElementById("wk-remember").checked,
         });
 
-        document.getElementById("btn-wk-test").addEventListener("click", async () => {
+        document.getElementById("btn-wk-test").addEventListener("click", async (e) => {
+          const btn = e.currentTarget;
           const { url } = readWkInputs();
           const status = document.getElementById("wk-status");
           if (!url) {
             status.innerHTML = `<div class="callout callout-danger">Enter your Cloudflare Worker URL.</div>`;
             return;
           }
+          btn.disabled = true;
           status.innerHTML = `<div class="callout">Checking ${escapeHtml(url)}/health...</div>`;
           try {
-            const res = await fetch(`${url}/health`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            validateWorkerUrl(url);
+            const res = await safeFetch(`${url}/health`, {}, `Worker (${url})`);
+            if (!res.ok) throw await formatWorkerApiError("Health check", res);
+            const data = await res.json().catch(() => null);
+            if (!data || !data.ok) {
+              throw new Error("Endpoint responded, but did not return a valid OpenAgentMemory /health JSON payload.");
+            }
             status.innerHTML = `<div class="callout callout-accent">Healthy (${escapeHtml(data.schema)}). Gist: <strong>${data.backends?.gist ? "on" : "off"}</strong> · Private Repo: <strong>${data.backends?.repo ? "on" : "off"}</strong> · Auth: <strong>${data.auth_enabled ? "enabled" : "open"}</strong>.</div>`;
           } catch (err) {
             status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          } finally {
+            btn.disabled = false;
           }
         });
 
-        document.getElementById("btn-wk-pull").addEventListener("click", async () => {
+        document.getElementById("btn-wk-pull").addEventListener("click", async (e) => {
+          const btn = e.currentTarget;
           const { url, token } = readWkInputs();
           const status = document.getElementById("wk-status");
+          if (!url) {
+            status.innerHTML = `<div class="callout callout-danger">Enter your Cloudflare Worker URL before syncing.</div>`;
+            return;
+          }
+          btn.disabled = true;
+          status.innerHTML = `<div class="callout">Syncing records from ${escapeHtml(url)}...</div>`;
           try {
             const recs = await workerFetchRecords(url, token);
             state.records = recs;
             saveLocalRecords(recs);
             state.selectedId = null;
             renderAll();
-            status.innerHTML = `<div class="callout callout-accent">Synced <strong>${recs.length}</strong> records from Worker.</div>`;
+            status.innerHTML = `<div class="callout callout-accent">Synced <strong>${recs.length}</strong> record(s) from Worker.</div>`;
           } catch (err) {
             status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
+          } finally {
+            btn.disabled = false;
           }
         });
 
         document.getElementById("btn-use-worker").addEventListener("click", () => {
           const cfg = readWkInputs();
+          const status = document.getElementById("wk-status");
           if (!cfg.url) {
-            document.getElementById("wk-status").innerHTML = `<div class="callout callout-danger">Worker URL is required.</div>`;
+            status.innerHTML = `<div class="callout callout-danger">Worker URL is required.</div>`;
+            return;
+          }
+          try {
+            validateWorkerUrl(cfg.url);
+          } catch (err) {
+            status.innerHTML = `<div class="callout callout-danger">${escapeHtml(err.message)}</div>`;
             return;
           }
           state.backend.mode = "worker";
@@ -3399,6 +3620,31 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
           }
         });
         loadSelectedToValidator();
+
+        // 3-Minute Onboarding Strip actions
+        const onboardStrip = document.getElementById("onboard-strip");
+        if (localStorage.getItem("oam.onboard.dismissed.v1") === "1" && onboardStrip) {
+          onboardStrip.style.display = "none";
+        }
+        document.getElementById("btn-onboard-timetravel").addEventListener("click", () => {
+          document.getElementById("btn-time-past").click();
+        });
+        document.getElementById("btn-onboard-copy-agents").addEventListener("click", () => {
+          const md = generateAgentsMarkdown("all", true);
+          copyText(md, "Copied AGENTS.md snippet to clipboard — paste into your repo!");
+        });
+        document.getElementById("btn-onboard-preview-agents").addEventListener("click", () => {
+          refreshExportPreviews();
+          openModal("modal-export");
+        });
+        document.getElementById("btn-onboard-dismiss").addEventListener("click", () => {
+          if (onboardStrip) onboardStrip.style.display = "none";
+          try {
+            localStorage.setItem("oam.onboard.dismissed.v1", "1");
+          } catch {
+            // ignore storage errors
+          }
+        });
       }
 
       function hydrateRepoLinks() {
@@ -3407,10 +3653,10 @@ curl "https://oam.YOUR-SUBDOMAIN.workers.dev/records?namespace=public"</pre>
         if (!match) return;
         const owner = match[1];
         const firstSeg = (window.location.pathname || "/").split("/").filter(Boolean)[0];
-        if (!firstSeg) return;
-        const base = `https://github.com/${owner}/${firstSeg}`;
+        if (!firstSeg || !/^[a-zA-Z0-9._-]+$/.test(firstSeg)) return;
+        const base = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(firstSeg)}`;
         document.querySelectorAll("a[data-repo-path]").forEach((a) => {
-          a.href = base + a.getAttribute("data-repo-path");
+          a.href = base + (a.getAttribute("data-repo-path") || "");
         });
       }
 

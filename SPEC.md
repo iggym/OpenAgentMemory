@@ -220,10 +220,12 @@ OAM separates storage trust boundaries strictly by namespace prefix.
 
 | Namespace Pattern | Route Target | Intended Visibility | Example Reference Backend |
 | :--- | :--- | :--- | :--- |
-| `public` or `public/*` | `gist` (Public/Shared Store) | Publicly readable; auth-gated writes | GitHub Gist |
-| `shared` or `shared/*` | `gist` (Public/Shared Store) | Shared across collaborators/agents via URL or token | GitHub Gist (unlisted/secret) |
-| `private` or `private/*` | `repo` (Private Store) | Strictly private; auth-gated reads & writes | Private GitHub Repository |
-| *Any other namespace* | `repo` (**Fail-Closed Default**) | Strictly private | Private GitHub Repository |
+| `public` or `public/*` | `gist` (Public/Shared Store) | Publicly readable; auth-gated writes | Public GitHub Gist |
+| `shared` or `shared/*` | `gist` (Public/Shared Store) | Link-shareable team norms (non-secret) | Secret (unlisted) GitHub Gist |
+| `private` or `private/*` | `repo` (Private Store) | Strictly private; auth-gated reads & writes | Private GitHub Repository or authenticated Cloudflare backend (D1/KV) |
+| *Any other namespace* | `repo` (**Fail-Closed Default**) | Strictly private | Private GitHub Repository or authenticated Cloudflare backend (D1/KV) |
+
+> **Why `private/*` never uses GitHub Gists:** GitHub Gists only have **public** and **secret** visibility. A *secret* Gist is merely **unlisted**—anyone who obtains the URL can read it without authentication, and Gists lack repository-level access control and audit logs. Therefore, `private/*` (and all unrecognized namespaces) MUST route to a private GitHub repository or an authenticated private backend (such as Cloudflare D1 or Cloudflare KV behind a Worker).
 
 ### 6.2 Fail-Closed Security Invariant
 
@@ -243,7 +245,7 @@ function routeNamespace(namespace) {
 }
 ```
 
-A typo such as `privte/tokens` or `personal/notes` MUST NEVER fall through to a public Gist.
+A typo such as `privte/tokens` or `personal/notes` MUST NEVER fall through to a public or secret Gist.
 
 ---
 
